@@ -22,7 +22,10 @@ public:
         setColour(juce::Slider::backgroundColourId, juce::Colours::lightgrey);
         setColour(juce::Slider::trackColourId, limeColor);
         
+        // Other elements
         setColour(juce::Label::textColourId, limeColor);
+        setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+
     };
     
     juce::Label* createSliderTextBox (juce::Slider& slider) override {
@@ -31,6 +34,31 @@ public:
 
         return returnLabel;
     }
+    
+    void drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height,
+                                           float sliderPos,
+                                           float minSliderPos,
+                                           float maxSliderPos,
+                                           const juce::Slider::SliderStyle style, juce::Slider& slider) override
+    {
+        if (slider.isBar() && slider.isHorizontal())
+        {
+            g.setColour(slider.findColour (juce::Slider::backgroundColourId));
+            g.fillRoundedRectangle(x, y, width, height, 3.0f);
+            
+            g.setColour (slider.findColour (juce::Slider::trackColourId));
+            g.fillRoundedRectangle(x, y, sliderPos, height, 3.0f);
+
+        } else {
+            juce::LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
+        }
+
+//        drawLinearSliderOutline (g, x, y, width, height, style, slider);
+    }
+    
+    void drawLinearSliderOutline(juce::Graphics&, int, int, int, int,
+                                 juce::Slider::SliderStyle, juce::Slider&) override {}
+
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(YellowPlayerLookAndFeel)
