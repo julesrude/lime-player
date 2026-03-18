@@ -8,6 +8,7 @@
 
 #include <JuceHeader.h>
 #include "MainComponent.h"
+#include "YellowPlayer.h"
 
 //==============================================================================
 class MainWindowTutorialApplication  : public juce::JUCEApplication
@@ -54,7 +55,7 @@ public:
     public:
         MainWindow(juce::String name) : juce::DocumentWindow(name, juce::Colours::coral, DocumentWindow::allButtons) {
             setUsingNativeTitleBar(true);
-            setContentOwned(new MainComponent(), true); // true - window is sized as the component/s
+            setContentOwned(new YellowPlayer(), true); // true - window is sized as the component/s
                                                         // false - new component/s are sized to fit the window
             setResizable(true, false);
 

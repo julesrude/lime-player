@@ -4,10 +4,13 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="j5TAVt" name="MainWindowTutorial">
     <GROUP id="{A35C71F9-66A8-29A4-B8DE-943D693C393D}" name="Source">
+      <FILE id="EPXn57" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+      <FILE id="x04QaM" name="YellowPlayer.h" compile="0" resource="0" file="Source/YellowPlayer.h"/>
+      <FILE id="RrdrNx" name="YellowPlayer.cpp" compile="1" resource="0"
+            file="Source/YellowPlayer.cpp"/>
       <FILE id="mdh3vG" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="k3MPjZ" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
-      <FILE id="EPXn57" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>
