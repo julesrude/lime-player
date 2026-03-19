@@ -28,29 +28,31 @@ void SoundWavePath::paint (juce::Graphics& g)
     
     float thickLineThickness = 1.0f;
     auto drawingBounds = getLocalBounds().toFloat().reduced(thickLineThickness / 2.0f);
-    
-    int numOfDivisions = 5;
-    float widthOfDivision = drawingBounds.getWidth() / numOfDivisions;
+    g.drawHorizontalLine(drawingBounds.getHeight() / 2.0f, 0.0f, drawingBounds.getWidth());
+
+    int numMajorDivisions = 5;
+    float widthMajorDivision = drawingBounds.getWidth() / numMajorDivisions;
     
     float triangleSize = 5.0f;
     
     juce::Path p;
-    for (int div = 0; div <= numOfDivisions; ++div) {
-        float x = drawingBounds.getX() + widthOfDivision * div;
+    for (int div = 0; div <= numMajorDivisions; ++div) {
+        float x = drawingBounds.getX() + widthMajorDivision * div;
         
-        p.addTriangle({x - triangleSize, 0.0f}, {x, triangleSize}, {x + triangleSize, 0.0f});
+        p.addTriangle({x - triangleSize, 0.0f},
+                      {x,                triangleSize},
+                      {x + triangleSize, 0.0f});
         g.drawLine(x, 0.0f, x, drawingBounds.getHeight(), thickLineThickness);
     }
     g.fillPath(p);
     
-    int numOfSmallDivisions = 30;
-    float widthOfSmallDivision = drawingBounds.getWidth() / numOfSmallDivisions;
-    for (int div = 0; div <= numOfSmallDivisions; ++div) {
-        float x = drawingBounds.getX() + widthOfSmallDivision * div;
-        g.drawLine(x, 0.0f, x, drawingBounds.getHeight(), 0.15f);
+    g.setOpacity(0.15f);
+    int numMinorDivisions = 30;
+    float widthMinorDivision = drawingBounds.getWidth() / numMinorDivisions;
+    for (int div = 0; div <= numMinorDivisions; ++div) {
+        float x = drawingBounds.getX() + widthMinorDivision * div;
+        g.drawLine(x, 0.0f, x, drawingBounds.getHeight());
     }
-    
-    g.drawHorizontalLine(getHeight() / 2.0f, 0.0f, getWidth());
 }
 
 void SoundWavePath::resized()
