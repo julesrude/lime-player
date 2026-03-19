@@ -39,13 +39,11 @@ void YellowPlayer::paint (juce::Graphics& g)
     g.setColour (lookAndFeel.darkGreyColor);
 
     auto centralArea = getLocalBounds().toFloat().reduced(10.f);
-    auto controlsArea = centralArea.withTop(centralArea.getBottom() - 60.0f); // bottom 10%
-    auto playerArea = centralArea.withTrimmedBottom(controlsArea.getHeight() + 60.f);
-//    auto playerArea = centralArea.withHeight(centralArea.getHeight() * 0.8); // top 80%
-
+    auto centralAreaCopy = centralArea;
+    auto controlsArea = centralAreaCopy.removeFromBottom(60.0f);    // bottom 10% in original size
+    auto underPlayersArea = centralAreaCopy.removeFromBottom(60.0f);
+    auto playerArea = centralAreaCopy;                              // all area - 60 - 60
     
-    DBG("player area height BEFORE top player are calc:" << playerArea.getHeight());
-    DBG(centralArea.getHeight());
     g.fillRoundedRectangle(playerArea, 20.0f);
 
     // Text
@@ -58,9 +56,9 @@ void YellowPlayer::paint (juce::Graphics& g)
 
     // Player components
     g.setColour(lookAndFeel.blackColor.brighter());
-    auto topPlayerArea = playerArea.withTrimmedTop(10.0f).withHeight((playerArea.getHeight() - 10.0f * 3) / 2).reduced(10, 0);
-    DBG("player area height after top player are calc:" << playerArea.getHeight());
-    auto bottomPlayerArea = playerArea.withTrimmedTop(10.0f + topPlayerArea.getHeight() + 10.0f).withHeight((playerArea.getHeight() - 10.0f * 3) / 2).reduced(10, 0);
+    auto playerAreaCopy = playerArea;
+    auto topPlayerArea = playerAreaCopy.removeFromTop(playerArea.getHeight() / 2).reduced(10, 7.5f).translated(0, 2.5f);
+    auto bottomPlayerArea = playerAreaCopy.removeFromTop(playerArea.getHeight() / 2).reduced(10, 7.5f).translated(0, -2.5f);
     
     g.fillRoundedRectangle(topPlayerArea, 20.0f - 5.0f);
     g.fillRoundedRectangle(bottomPlayerArea, 20.0f - 5.0f);
