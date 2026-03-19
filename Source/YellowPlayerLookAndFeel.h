@@ -38,7 +38,7 @@ public:
     juce::Colour darkGreyColor { 0xff374151 };
     juce::Colour lightGreyColor { 0xffd1d5db };
     juce::Colour whiteColor { 0xfff9fafb };
-    
+
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(YellowPlayerLookAndFeel)
 };

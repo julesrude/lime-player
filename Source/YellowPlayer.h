@@ -12,6 +12,7 @@
 
 #include <JuceHeader.h>
 #include "YellowPlayerLookAndFeel.h"
+#include "SoundWavePath.h"
 
 // //==============================================================================
 
@@ -49,4 +50,6 @@ private:
     
     SoundLevelSlider topSlider_;
     SoundLevelSlider bottomSlider_;
+    
+    SoundWavePath topSoundWave_ = {lookAndFeel.whiteColor};
 };

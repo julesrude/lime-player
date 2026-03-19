@@ -23,6 +23,7 @@ YellowPlayer::YellowPlayer()
 
     addAndMakeVisible(topSlider_);
     addAndMakeVisible(bottomSlider_);
+    addAndMakeVisible(topSoundWave_);
 }
 
 YellowPlayer::~YellowPlayer()
@@ -68,6 +69,7 @@ void YellowPlayer::paint (juce::Graphics& g)
     topSlider_.setBounds(topPlayerArea.withHeight(20).withBottomY(topPlayerArea.getBottom() - 15).reduced(10, 0).toNearestInt());
     bottomSlider_.setBounds(bottomPlayerArea.withHeight(20).withBottomY(bottomPlayerArea.getBottom() - 15).reduced(10, 0).toNearestInt());
     
+    topSoundWave_.setBounds(topPlayerArea.reduced(10, 40).translated(0, -5).toNearestInt());
 }
 
 void YellowPlayer::resized()
