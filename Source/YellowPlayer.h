@@ -19,7 +19,7 @@ public:
     YellowPlayerLookAndFeel()
     {
         // Sliders feel
-        setColour(juce::Slider::backgroundColourId, juce::Colours::lightgrey);
+        setColour(juce::Slider::backgroundColourId, lightGreyColor);
         setColour(juce::Slider::trackColourId, limeColor);
         
         // Other elements
@@ -59,11 +59,17 @@ public:
     void drawLinearSliderOutline(juce::Graphics&, int, int, int, int,
                                  juce::Slider::SliderStyle, juce::Slider&) override {}
 
-
+    juce::Colour limeColor = juce::Colour(251, 253, 130);
+    juce::Colour midGreyColor = juce::Colour(180, 180, 180);
+    juce::Colour blackColor { 0xff1f2937 };
+    juce::Colour darkGreyColor { 0xff374151 };
+    juce::Colour lightGreyColor { 0xffd1d5db };
+    juce::Colour whiteColor { 0xfff9fafb };
+    
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(YellowPlayerLookAndFeel)
 
-    juce::Colour limeColor = juce::Colour(251, 253, 130);
+
 };
 
 // //==============================================================================
@@ -100,7 +106,6 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (YellowPlayer)
     YellowPlayerLookAndFeel lookAndFeel;
     
-    SoundLevelSlider slider;
-
-    juce::Colour midGreyColor = juce::Colour(180, 180, 180);
+    SoundLevelSlider topSlider_;
+    SoundLevelSlider bottomSlider_;
 };

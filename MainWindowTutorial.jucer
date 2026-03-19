@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="CBJkFI" name="MainWindowTutorial" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
-  <MAINGROUP id="j5TAVt" name="MainWindowTutorial">
+<JUCERPROJECT id="CBJkFI" name="YellowPlayer" projectType="guiapp" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" companyName="YuliiaRuda">
+  <MAINGROUP id="j5TAVt" name="YellowPlayer">
     <GROUP id="{A35C71F9-66A8-29A4-B8DE-943D693C393D}" name="Source">
       <FILE id="EPXn57" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="x04QaM" name="YellowPlayer.h" compile="0" resource="0" file="Source/YellowPlayer.h"/>

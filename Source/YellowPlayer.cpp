@@ -18,9 +18,11 @@ YellowPlayer::YellowPlayer()
     setLookAndFeel(&lookAndFeel);
 
     // To force to recreate text box using the custom look and feel of the parent
-    slider.setLookAndFeel(&lookAndFeel);
+    topSlider_.setLookAndFeel(&lookAndFeel);
+    bottomSlider_.setLookAndFeel(&lookAndFeel);
 
-    addAndMakeVisible(slider);
+    addAndMakeVisible(topSlider_);
+    addAndMakeVisible(bottomSlider_);
 }
 
 YellowPlayer::~YellowPlayer()
@@ -30,9 +32,11 @@ YellowPlayer::~YellowPlayer()
 
 void YellowPlayer::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colours::black);
+    // Background
+    g.fillAll (lookAndFeel.blackColor);
 
-    g.setColour (juce::Colours::lightgrey);
+    // Central component
+    g.setColour (lookAndFeel.darkGreyColor);
 
     auto centralArea = getLocalBounds().toFloat().reduced(10.f);
     auto controlsArea = centralArea.withTop(centralArea.getBottom() - 60.0f); // bottom 10%
@@ -44,14 +48,16 @@ void YellowPlayer::paint (juce::Graphics& g)
     DBG(centralArea.getHeight());
     g.fillRoundedRectangle(playerArea, 20.0f);
 
+    // Text
     g.setColour(lookAndFeel.findColour(juce::Label::textColourId));
 
     juce::Time currentTime = juce::Time::getCurrentTime();
-    juce::String timeString = juce::String(juce::String(currentTime.getHours()) + ":" + juce::String(currentTime.getMinutes()));
+    juce::String timeString = juce::String(juce::String(currentTime.getHours()).paddedLeft('0', 2) + ":" + (juce::String(currentTime.getMinutes())).paddedLeft('0', 2));
     g.setFont (juce::FontOptions("Helvetica", 60, juce::Font::plain));
     g.drawText(timeString, controlsArea, juce::Justification::bottomLeft);
-    
-    g.setColour(midGreyColor);
+
+    // Player components
+    g.setColour(lookAndFeel.blackColor.brighter());
     auto topPlayerArea = playerArea.withTrimmedTop(10.0f).withHeight((playerArea.getHeight() - 10.0f * 3) / 2).reduced(10, 0);
     DBG("player area height after top player are calc:" << playerArea.getHeight());
     auto bottomPlayerArea = playerArea.withTrimmedTop(10.0f + topPlayerArea.getHeight() + 10.0f).withHeight((playerArea.getHeight() - 10.0f * 3) / 2).reduced(10, 0);
@@ -61,7 +67,8 @@ void YellowPlayer::paint (juce::Graphics& g)
     
     // ----
     //
-    slider.setBounds(topPlayerArea.withHeight(20).withBottomY(topPlayerArea.getBottom() - 10).reduced(10, 0).toNearestInt());
+    topSlider_.setBounds(topPlayerArea.withHeight(20).withBottomY(topPlayerArea.getBottom() - 15).reduced(10, 0).toNearestInt());
+    bottomSlider_.setBounds(bottomPlayerArea.withHeight(20).withBottomY(bottomPlayerArea.getBottom() - 15).reduced(10, 0).toNearestInt());
     
 }
 
