@@ -58,5 +58,5 @@ private:
     const float controlsAreaHeight_ = 60.0f;
     const float helveticaMultiplier = 1.43; // calculated as (height / ascent);
 
-    SoundWavePath topSoundWave_ = {lookAndFeel.whiteColor};
+    SoundWavePath topSoundWave_ = {YellowPlayerColours::white};
 };

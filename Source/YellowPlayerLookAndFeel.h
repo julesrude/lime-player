@@ -16,6 +16,15 @@
 /*
 */
 
+namespace YellowPlayerColours {
+    const juce::Colour lime = juce::Colour(251, 253, 130);
+    const juce::Colour midGrey = juce::Colour(180, 180, 180);
+    const juce::Colour black { 0xff1f2937 };
+    const juce::Colour darkGrey { 0xff374151 };
+    const juce::Colour lightGrey { 0xffd1d5db };
+    const juce::Colour white { 0xfff9fafb };
+}
+
 class YellowPlayerLookAndFeel :  public juce::LookAndFeel_V4
 {
 public:
@@ -32,12 +41,6 @@ public:
     void drawLinearSliderOutline(juce::Graphics&, int, int, int, int,
                                  juce::Slider::SliderStyle, juce::Slider&) override {}
 
-    juce::Colour limeColor = juce::Colour(251, 253, 130);
-    juce::Colour midGreyColor = juce::Colour(180, 180, 180);
-    juce::Colour blackColor { 0xff1f2937 };
-    juce::Colour darkGreyColor { 0xff374151 };
-    juce::Colour lightGreyColor { 0xffd1d5db };
-    juce::Colour whiteColor { 0xfff9fafb };
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(YellowPlayerLookAndFeel)

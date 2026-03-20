@@ -16,11 +16,11 @@
 YellowPlayerLookAndFeel::YellowPlayerLookAndFeel()
 {
     // Sliders feel
-    setColour(juce::Slider::backgroundColourId, lightGreyColor);
-    setColour(juce::Slider::trackColourId, limeColor);
+    setColour(juce::Slider::backgroundColourId, YellowPlayerColours::lightGrey);
+    setColour(juce::Slider::trackColourId, YellowPlayerColours::lime);
     
     // Other elements
-    setColour(juce::Label::textColourId, limeColor);
+    setColour(juce::Label::textColourId, YellowPlayerColours::lime);
     setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
 
 }

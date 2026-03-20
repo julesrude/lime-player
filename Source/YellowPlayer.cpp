@@ -45,9 +45,9 @@ juce::Path playShape(float height, float width) {
 
 //==============================================================================
 YellowPlayer::YellowPlayer()
-    : pauseButton_("Pause", lookAndFeel.limeColor, lookAndFeel.limeColor.brighter(), lookAndFeel.limeColor)
-    , playButton_("Play", lookAndFeel.limeColor, lookAndFeel.limeColor.brighter(), lookAndFeel.limeColor)
-    , plusButton_("Add song", lookAndFeel.limeColor, lookAndFeel.limeColor.brighter(), lookAndFeel.limeColor)
+    : pauseButton_("Pause", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
+    , playButton_("Play", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
+    , plusButton_("Add song", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
 {
     setSize(600, 600);
     setLookAndFeel(&lookAndFeel);
@@ -80,10 +80,10 @@ YellowPlayer::~YellowPlayer()
 void YellowPlayer::paint (juce::Graphics& g)
 {
     // Background
-    g.fillAll (lookAndFeel.blackColor);
+    g.fillAll (YellowPlayerColours::black);
 
     // Central component
-    g.setColour (lookAndFeel.darkGreyColor);
+    g.setColour (YellowPlayerColours::darkGrey);
 
     auto centralArea = getLocalBounds().toFloat().reduced(10.f);
     auto centralAreaCopy = centralArea;
@@ -94,7 +94,7 @@ void YellowPlayer::paint (juce::Graphics& g)
     g.fillRoundedRectangle(playerArea, 20.0f);
 
     // Player components
-    g.setColour(lookAndFeel.blackColor.brighter());
+    g.setColour(YellowPlayerColours::black.brighter());
     auto playerAreaCopy = playerArea;
     auto topPlayerArea = playerAreaCopy.removeFromTop(playerArea.getHeight() / 2).reduced(10, 7.5f).translated(0, 2.5f);
     auto bottomPlayerArea = playerAreaCopy.removeFromTop(playerArea.getHeight() / 2).reduced(10, 7.5f).translated(0, -2.5f);
@@ -121,10 +121,6 @@ void YellowPlayer::paint (juce::Graphics& g)
     auto clockFont = juce::FontOptions ("Helvetica", 60.0f * helveticaMultiplier, juce::Font::plain);
     g.setFont (clockFont);
     g.drawSingleLineText (timeString, clockArea.getX(), clockArea.getBottom());
-    
-    g.setColour(juce::Colours::red);
-    g.drawRect(clockArea);
-
 }
 
 void YellowPlayer::resized()
