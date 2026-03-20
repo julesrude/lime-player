@@ -35,11 +35,15 @@ public:
 //==============================================================================
 /*
 */
-class YellowPlayer  : public juce::Component
+class YellowPlayer  : public juce::AudioAppComponent
 {
 public:
     YellowPlayer();
     ~YellowPlayer() override;
+
+    void prepareToPlay (int samplesPerBlockExpected, double sampleRate) override;
+    void getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill) override;
+    void releaseResources() override;
 
     void paint (juce::Graphics&) override;
     void resized() override;
@@ -56,7 +60,7 @@ private:
     juce::ShapeButton plusButton_;
     
     const float controlsAreaHeight_ = 60.0f;
-    const float helveticaMultiplier = 1.43; // calculated as (height / ascent);
+    const float helveticaMultiplier = 1.35f; // (height / ascent) + a little because the numbers are lower than ascent
 
     SoundWavePath topSoundWave_ = {YellowPlayerColours::white};
 };

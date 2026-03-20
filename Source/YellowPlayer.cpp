@@ -49,6 +49,8 @@ YellowPlayer::YellowPlayer()
     , playButton_("Play", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
     , plusButton_("Add song", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
 {
+    setAudioChannels (/* input channels */0, /*output channels */2);
+    
     setSize(600, 600);
     setLookAndFeel(&lookAndFeel);
 
@@ -60,7 +62,7 @@ YellowPlayer::YellowPlayer()
     float linesWidth = 10.0f;
 
     pauseButton_.setShape(pauseShape(buttonSize, 30.f, linesWidth), true, true, true);
-    playButton_.setShape(playShape(buttonSize, buttonSize), true, true, true);
+    playButton_.setShape(playShape(buttonSize, buttonSize * 0.75f), true, true, true);
     plusButton_.setShape(plusShape(buttonSize, linesWidth), true, true, true);
 
     addAndMakeVisible(topSlider_);
@@ -75,7 +77,34 @@ YellowPlayer::YellowPlayer()
 YellowPlayer::~YellowPlayer()
 {
     setLookAndFeel(nullptr);
+    shutdownAudio();
 }
+
+void YellowPlayer::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
+{
+    // This function will be called when the audio device is started, or when
+    // its settings (i.e. sample rate, block size, etc) are changed.
+
+    // You can use this function to initialise any resources you might need,
+    // but be careful - it will be called on the audio thread, not the GUI thread.
+
+    // For more details, see the help for AudioProcessor::prepareToPlay()
+
+}
+
+void YellowPlayer::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
+{
+}
+
+void YellowPlayer::releaseResources()
+{
+    // This will be called when the audio device stops, or when it is being
+    // restarted due to a setting change.
+
+    // For more details, see the help for AudioProcessor::releaseResources()
+}
+
+// ============================ GUI ============================
 
 void YellowPlayer::paint (juce::Graphics& g)
 {
@@ -114,13 +143,14 @@ void YellowPlayer::paint (juce::Graphics& g)
     
     // Text
     auto clockArea = controlsArea.removeFromLeft(controlsArea.getWidth() / 2.0f);
+    auto clockAreaDrawingBounds = clockArea.reduced(2.0f);
     g.setColour(lookAndFeel.findColour(juce::Label::textColourId));
     
     juce::Time currentTime = juce::Time::getCurrentTime();
     juce::String timeString = juce::String (juce::String(currentTime.getHours()).paddedLeft('0', 2) + ":" + (juce::String(currentTime.getMinutes())).paddedLeft('0', 2));
     auto clockFont = juce::FontOptions ("Helvetica", 60.0f * helveticaMultiplier, juce::Font::plain);
-    g.setFont (clockFont);
-    g.drawSingleLineText (timeString, clockArea.getX(), clockArea.getBottom());
+    g.setFont(clockFont);
+    g.drawSingleLineText (timeString, clockAreaDrawingBounds.getX(), clockAreaDrawingBounds.getBottom());
 }
 
 void YellowPlayer::resized()
