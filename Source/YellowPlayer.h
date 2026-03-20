@@ -51,5 +51,12 @@ private:
     SoundLevelSlider topSlider_;
     SoundLevelSlider bottomSlider_;
     
+    juce::ShapeButton pauseButton_;
+    juce::ShapeButton playButton_;
+    juce::ShapeButton plusButton_;
+    
+    const float controlsAreaHeight_ = 60.0f;
+    const float helveticaMultiplier = 1.43; // calculated as (height / ascent);
+
     SoundWavePath topSoundWave_ = {lookAndFeel.whiteColor};
 };

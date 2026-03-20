@@ -11,19 +11,65 @@
 #include <JuceHeader.h>
 #include "YellowPlayer.h"
 
+//============================== SHAPES ========================================
+
+juce::Path plusShape(float size, float thickness) {
+    juce::Path plus;
+
+    // horisontal long rectangle
+    plus.addRectangle(0, size / 2.0f - thickness / 2.0f, size, thickness);
+    // vertical long rectangle
+    plus.addRectangle(size / 2.0f - thickness / 2.0f, 0, thickness, size);
+    
+    return plus;
+}
+
+juce::Path pauseShape(float height, float width, float thickness) {
+    juce::Path pause;
+
+    // two long vertical rectangles
+    pause.addRectangle(0, 0, thickness, height);
+    pause.addRectangle(width - thickness, 0, thickness, height);
+    
+    return pause;
+}
+
+juce::Path playShape(float height, float width) {
+    juce::Path play;
+
+    // two long vertical rectangles
+    play.addTriangle(0, 0, width, height / 2.0, 0, height);
+    
+    return play;
+}
+
 //==============================================================================
 YellowPlayer::YellowPlayer()
+    : pauseButton_("Pause", lookAndFeel.limeColor, lookAndFeel.limeColor.brighter(), lookAndFeel.limeColor)
+    , playButton_("Play", lookAndFeel.limeColor, lookAndFeel.limeColor.brighter(), lookAndFeel.limeColor)
+    , plusButton_("Add song", lookAndFeel.limeColor, lookAndFeel.limeColor.brighter(), lookAndFeel.limeColor)
 {
     setSize(600, 600);
     setLookAndFeel(&lookAndFeel);
 
-    // To force to recreate text box using the custom look and feel of the parent
+    // Just to force to recreate text box using the custom look and feel of the parent
     topSlider_.setLookAndFeel(&lookAndFeel);
     bottomSlider_.setLookAndFeel(&lookAndFeel);
+    
+    float buttonSize = 50.0f;
+    float linesWidth = 10.0f;
+
+    pauseButton_.setShape(pauseShape(buttonSize, 30.f, linesWidth), true, true, true);
+    playButton_.setShape(playShape(buttonSize, buttonSize), true, true, true);
+    plusButton_.setShape(plusShape(buttonSize, linesWidth), true, true, true);
 
     addAndMakeVisible(topSlider_);
     addAndMakeVisible(bottomSlider_);
     addAndMakeVisible(topSoundWave_);
+
+    addAndMakeVisible(pauseButton_);
+    addAndMakeVisible(playButton_);
+    addAndMakeVisible(plusButton_);
 }
 
 YellowPlayer::~YellowPlayer()
@@ -41,19 +87,11 @@ void YellowPlayer::paint (juce::Graphics& g)
 
     auto centralArea = getLocalBounds().toFloat().reduced(10.f);
     auto centralAreaCopy = centralArea;
-    auto controlsArea = centralAreaCopy.removeFromBottom(60.0f);    // bottom 10% in original size
+    auto controlsArea = centralAreaCopy.removeFromBottom(controlsAreaHeight_);    // bottom 10% in original size
     auto underPlayersArea = centralAreaCopy.removeFromBottom(60.0f);
     auto playerArea = centralAreaCopy;                              // all area - 60 - 60
     
     g.fillRoundedRectangle(playerArea, 20.0f);
-
-    // Text
-    g.setColour(lookAndFeel.findColour(juce::Label::textColourId));
-
-    juce::Time currentTime = juce::Time::getCurrentTime();
-    juce::String timeString = juce::String(juce::String(currentTime.getHours()).paddedLeft('0', 2) + ":" + (juce::String(currentTime.getMinutes())).paddedLeft('0', 2));
-    g.setFont (juce::FontOptions("Helvetica", 60, juce::Font::plain));
-    g.drawText(timeString, controlsArea, juce::Justification::bottomLeft);
 
     // Player components
     g.setColour(lookAndFeel.blackColor.brighter());
@@ -63,13 +101,30 @@ void YellowPlayer::paint (juce::Graphics& g)
     
     g.fillRoundedRectangle(topPlayerArea, 20.0f - 5.0f);
     g.fillRoundedRectangle(bottomPlayerArea, 20.0f - 5.0f);
-    
-    // ----
-    //
+
     topSlider_.setBounds(topPlayerArea.withHeight(20).withBottomY(topPlayerArea.getBottom() - 15).reduced(10, 0).toNearestInt());
     bottomSlider_.setBounds(bottomPlayerArea.withHeight(20).withBottomY(bottomPlayerArea.getBottom() - 15).reduced(10, 0).toNearestInt());
-    
+
     topSoundWave_.setBounds(topPlayerArea.reduced(10, 40).translated(0, -5).toNearestInt());
+
+    // Controls
+    pauseButton_.setBounds(controlsArea.withLeft(controlsArea.getCentreX()).withRight(controlsArea.getCentreX() + controlsAreaHeight_).toNearestInt());
+    playButton_.setBounds(controlsArea.withLeft(controlsArea.getCentreX() + controlsAreaHeight_).withRight(controlsArea.getCentreX() + controlsAreaHeight_ * 2).toNearestInt());
+    plusButton_.setBounds(controlsArea.withLeft(controlsArea.getRight() - controlsAreaHeight_).toNearestInt());
+    
+    // Text
+    auto clockArea = controlsArea.removeFromLeft(controlsArea.getWidth() / 2.0f);
+    g.setColour(lookAndFeel.findColour(juce::Label::textColourId));
+    
+    juce::Time currentTime = juce::Time::getCurrentTime();
+    juce::String timeString = juce::String (juce::String(currentTime.getHours()).paddedLeft('0', 2) + ":" + (juce::String(currentTime.getMinutes())).paddedLeft('0', 2));
+    auto clockFont = juce::FontOptions ("Helvetica", 60.0f * helveticaMultiplier, juce::Font::plain);
+    g.setFont (clockFont);
+    g.drawSingleLineText (timeString, clockArea.getX(), clockArea.getBottom());
+    
+    g.setColour(juce::Colours::red);
+    g.drawRect(clockArea);
+
 }
 
 void YellowPlayer::resized()

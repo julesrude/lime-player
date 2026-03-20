@@ -23,7 +23,6 @@ SoundWavePath::~SoundWavePath()
 
 void SoundWavePath::paint (juce::Graphics& g)
 {
-
     g.setColour (linesColour);
     
     float thickLineThickness = 1.0f;
@@ -47,6 +46,7 @@ void SoundWavePath::paint (juce::Graphics& g)
     g.fillPath(p);
     
     g.setOpacity(0.15f);
+
     int numMinorDivisions = 30;
     float widthMinorDivision = drawingBounds.getWidth() / numMinorDivisions;
     for (int div = 0; div <= numMinorDivisions; ++div) {
