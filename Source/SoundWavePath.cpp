@@ -21,43 +21,56 @@ SoundWavePath::~SoundWavePath()
 {
 }
 
+namespace {
+template <typename Action>
+void foreachVerticalBar(const juce::Rectangle<float> drawingBounds,
+                        const int numDivisions,
+                        Action&& action) {
+    
+    float spaceBtwBars = drawingBounds.getWidth() / numDivisions;
+    
+    // Number of bars will be 1 more than number of divisions
+    for (int bar = 0; bar <= numDivisions; ++bar) {
+        float x = drawingBounds.getX() + spaceBtwBars * bar;
+        
+        action(x);
+    }
+}
+}
+
 void SoundWavePath::paint (juce::Graphics& g)
 {
     g.setColour (linesColour);
-    
-    float thickLineThickness = 1.0f;
-    auto drawingBounds = getLocalBounds().toFloat().reduced(thickLineThickness / 2.0f);
-    g.drawHorizontalLine(drawingBounds.getHeight() / 2.0f, 0.0f, drawingBounds.getWidth());
 
-    int numMajorDivisions = 5;
-    float widthMajorDivision = drawingBounds.getWidth() / numMajorDivisions;
-    
-    float triangleSize = 5.0f;
-    
-    juce::Path p;
-    for (int div = 0; div <= numMajorDivisions; ++div) {
-        float x = drawingBounds.getX() + widthMajorDivision * div;
-        
-        p.addTriangle({x - triangleSize, 0.0f},
-                      {x,                triangleSize},
-                      {x + triangleSize, 0.0f});
-        g.drawLine(x, 0.0f, x, drawingBounds.getHeight(), thickLineThickness);
-    }
-    g.fillPath(p);
-    
+    g.drawHorizontalLine(drawingBounds.getCentreY(), drawingBounds.getX(), drawingBounds.getRight());
+
+    foreachVerticalBar(drawingBounds, numMajorDivisions, [this, &g](float x){
+        g.fillRect(juce::Rectangle<float>(thickLineThickness, drawingBounds.getHeight()).withCentre({x, drawingBounds.getCentreY()}));
+        DBG("line x : " << x );
+    });
+
+    g.fillPath(barTrianglesPath);
+
     g.setOpacity(0.15f);
 
-    int numMinorDivisions = 30;
-    float widthMinorDivision = drawingBounds.getWidth() / numMinorDivisions;
-    for (int div = 0; div <= numMinorDivisions; ++div) {
-        float x = drawingBounds.getX() + widthMinorDivision * div;
-        g.drawLine(x, 0.0f, x, drawingBounds.getHeight());
-    }
+    foreachVerticalBar(drawingBounds, numMinorDivisions, [this, &g](float x){
+        g.fillRect(juce::Rectangle<float>(thickLineThickness, drawingBounds.getHeight()).withCentre({x, drawingBounds.getCentreY()}));
+    });
+
 }
 
 void SoundWavePath::resized()
 {
-    // This method is where you should set the bounds of any child
-    // components that your component contains..
+    barTrianglesPath.clear();
+    
+    drawingBounds = getLocalBounds().toFloat().reduced(thickLineThickness / 2.0f, 0);
+
+
+    float triangleSize = 8.0f;
+    foreachVerticalBar(drawingBounds, numMajorDivisions, [this, triangleSize](float x){
+        barTrianglesPath.addTriangle({x - triangleSize, drawingBounds.getY()},                  // left-top
+                                     {x,                drawingBounds.getY() + triangleSize},   // center
+                                     {x + triangleSize, drawingBounds.getY()});                 // right-top
+    });
 
 }
