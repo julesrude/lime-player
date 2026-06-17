@@ -43,13 +43,30 @@ juce::Path playShape(float height, float width) {
     return play;
 }
 
+//============================== LISTENER ========================================
+
+void YellowPlayer::changeListenerCallback (juce::ChangeBroadcaster* source)
+{
+    if (source == &transportSource_)
+    {
+        if (transportSource_.isPlaying()) {
+            state_ = TransportState::Playing;
+        } else {
+            state_ = TransportState::Stopped;
+        }
+    }
+}
+
 //==============================================================================
 YellowPlayer::YellowPlayer()
     : pauseButton_("Pause", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
     , playButton_("Play", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
     , plusButton_("Add song", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
+    , state_(TransportState::Stopped)
 {
     setAudioChannels (/* input channels */0, /*output channels */2);
+    formatManager_.registerBasicFormats();
+    transportSource_.addChangeListener(this);
     
     setSize(600, 600);
     setLookAndFeel(&lookAndFeel);
@@ -72,6 +89,13 @@ YellowPlayer::YellowPlayer()
     addAndMakeVisible(pauseButton_);
     addAndMakeVisible(playButton_);
     addAndMakeVisible(plusButton_);
+
+    plusButton_.onClick = [this]{ plusButtonClicked(); };
+    playButton_.onClick = [this]{ playButtonClicked(); };
+    pauseButton_.onClick = [this]{pauseButtonClicked(); };
+
+    playButton_.setEnabled(false);
+    pauseButton_.setEnabled(false);
 }
 
 YellowPlayer::~YellowPlayer()
@@ -82,26 +106,23 @@ YellowPlayer::~YellowPlayer()
 
 void YellowPlayer::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
 {
-    // This function will be called when the audio device is started, or when
-    // its settings (i.e. sample rate, block size, etc) are changed.
-
-    // You can use this function to initialise any resources you might need,
-    // but be careful - it will be called on the audio thread, not the GUI thread.
-
-    // For more details, see the help for AudioProcessor::prepareToPlay()
-
+    transportSource_.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
 void YellowPlayer::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
+    if (!readerSource_)
+    {
+        bufferToFill.clearActiveBufferRegion();
+        return;
+    }
+    
+    transportSource_.getNextAudioBlock(bufferToFill);
 }
 
 void YellowPlayer::releaseResources()
 {
-    // This will be called when the audio device stops, or when it is being
-    // restarted due to a setting change.
-
-    // For more details, see the help for AudioProcessor::releaseResources()
+    transportSource_.releaseResources();
 }
 
 // ============================ GUI ============================
@@ -116,7 +137,7 @@ void YellowPlayer::paint (juce::Graphics& g)
 
     auto centralArea = getLocalBounds().toFloat().reduced(10.f);
     auto centralAreaCopy = centralArea;
-    auto controlsArea = centralAreaCopy.removeFromBottom(controlsAreaHeight_);    // bottom 10% in original size
+    auto controlsArea = centralAreaCopy.removeFromBottom(controlsAreaHeight_);  // bottom 10% in original size
     auto underPlayersArea = centralAreaCopy.removeFromBottom(60.0f);
     auto playerArea = centralAreaCopy;                              // all area - 60 - 60
     
@@ -159,3 +180,58 @@ void YellowPlayer::resized()
     // components that your component contains..
 
 }
+
+void YellowPlayer::changeAndHandleState(TransportState newState)
+{
+    if (newState == state_)
+        return;
+    
+    state_ = newState;
+    
+    switch (state_) {
+        case TransportState::Starting:
+            transportSource_.start();
+            
+        case TransportState::Playing:
+            playButton_.setEnabled(false);
+            pauseButton_.setEnabled(true);
+            break;
+        
+        case TransportState::Stopping:
+            transportSource_.stop();
+            
+        case TransportState::Stopped:
+            playButton_.setEnabled(true);
+            pauseButton_.setEnabled(false);
+            break;
+            
+        default:
+            break;
+    }
+}
+
+void YellowPlayer::plusButtonClicked() { 
+//    fileChooser_;
+    juce::File songFile ("/Users/jules/Documents/music/My Favorite Things.mp3");
+    
+    auto* reader = formatManager_.createReaderFor(songFile);
+    if (reader != nullptr) {
+        auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
+        transportSource_.setSource(newSource.get());
+        readerSource_.reset(newSource.release());
+    }
+    
+    playButton_.setEnabled(true);
+    
+}
+
+void YellowPlayer::pauseButtonClicked() { 
+    changeAndHandleState(TransportState::Stopping);
+}
+
+
+void YellowPlayer::playButtonClicked() { 
+    changeAndHandleState(TransportState::Starting);
+}
+
+

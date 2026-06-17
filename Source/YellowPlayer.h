@@ -35,7 +35,8 @@ public:
 //==============================================================================
 /*
 */
-class YellowPlayer  : public juce::AudioAppComponent
+class YellowPlayer  : public juce::AudioAppComponent,
+                      public juce::ChangeListener
 {
 public:
     YellowPlayer();
@@ -44,12 +45,26 @@ public:
     void prepareToPlay (int samplesPerBlockExpected, double sampleRate) override;
     void getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
+    
+    void changeListenerCallback (juce::ChangeBroadcaster* source) override;
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    
+    enum TransportState {
+        Stopped,
+        Starting,
+        Playing,
+        Stopping
+    };
 
 private:
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (YellowPlayer)
+    void changeAndHandleState(TransportState newState);
+    
+    void plusButtonClicked();
+    void playButtonClicked();
+    void pauseButtonClicked();
+    
     YellowPlayerLookAndFeel lookAndFeel;
     
     SoundLevelSlider topSlider_;
@@ -58,9 +73,18 @@ private:
     juce::ShapeButton pauseButton_;
     juce::ShapeButton playButton_;
     juce::ShapeButton plusButton_;
-    
+
+    SoundWavePath topSoundWave_ = {YellowPlayerColours::white};
+
     const float controlsAreaHeight_ = 60.0f;
     const float helveticaMultiplier = 1.35f; // (height / ascent) + a little because the numbers are lower than ascent
 
-    SoundWavePath topSoundWave_ = {YellowPlayerColours::white};
+    juce::AudioFormatManager formatManager_;
+    std::unique_ptr<juce::AudioFormatReaderSource> readerSource_;
+    juce::AudioTransportSource transportSource_;
+    TransportState state_;
+    
+    std::unique_ptr<juce::FileChooser> fileChooser_;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (YellowPlayer)
 };
