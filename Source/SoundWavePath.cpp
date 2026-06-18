@@ -46,7 +46,6 @@ void SoundWavePath::paint (juce::Graphics& g)
 
     foreachVerticalBar(drawingBounds_, numMajorDivisions_, [this, &g](float x){
         g.fillRect(juce::Rectangle<float>(thickLineThickness_, drawingBounds_.getHeight()).withCentre({x, drawingBounds_.getCentreY()}));
-        DBG("line x : " << x );
     });
 
     g.fillPath(barTrianglesPath_);
@@ -64,7 +63,6 @@ void SoundWavePath::resized()
     barTrianglesPath_.clear();
     
     drawingBounds_ = getLocalBounds().toFloat().reduced(thickLineThickness_ / 2.0f, 0);
-
 
     foreachVerticalBar(drawingBounds_, numMajorDivisions_, [this](float x){
         barTrianglesPath_.addTriangle({x - triangleSize_, drawingBounds_.getY()},                  // left-top

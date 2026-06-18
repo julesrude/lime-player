@@ -63,16 +63,26 @@ public:
 
 private:
     void changeAndHandleState(TransportState newState);
-    
+
     void plusButtonClicked();
     void playButtonClicked();
     void pauseButtonClicked();
     
     YellowPlayerLookAndFeel lookAndFeel;
     
+    juce::Rectangle<float> centralArea_;
+    juce::Rectangle<float> controlsArea_;       // bottom part with buttons and time
+    juce::Rectangle<float> playerArea_;         // part where the song timeline is
+    juce::Rectangle<float> underPlayersArea_;   // part between player and controls
+
+    juce::Rectangle<float> topPlayerArea_;
+    juce::Rectangle<float> bottomPlayerArea_;
+    
+    juce::Rectangle<float> timeArea_;
+
     SoundLevelSlider topSlider_;
     SoundLevelSlider bottomSlider_;
-    
+
     juce::ShapeButton pauseButton_;
     juce::ShapeButton playButton_;
     juce::ShapeButton plusButton_;

@@ -7,7 +7,6 @@
 */
 
 #include <JuceHeader.h>
-#include "MainComponent.h"
 #include "YellowPlayer.h"
 
 //==============================================================================

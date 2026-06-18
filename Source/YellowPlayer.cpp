@@ -68,7 +68,6 @@ YellowPlayer::YellowPlayer()
     formatManager_.registerBasicFormats();
     transportSource_.addChangeListener(this);
     
-    setSize(600, 600);
     setLookAndFeel(&lookAndFeel);
 
     // Just to force to recreate text box using the custom look and feel of the parent
@@ -86,6 +85,7 @@ YellowPlayer::YellowPlayer()
     addAndMakeVisible(bottomSlider_);
     addAndMakeVisible(topSoundWave_);
 
+    DBG("Add and make visible");
     addAndMakeVisible(pauseButton_);
     addAndMakeVisible(playButton_);
     addAndMakeVisible(plusButton_);
@@ -96,6 +96,8 @@ YellowPlayer::YellowPlayer()
 
     playButton_.setEnabled(false);
     pauseButton_.setEnabled(false);
+
+    setSize(600, 600);
 }
 
 YellowPlayer::~YellowPlayer()
@@ -137,37 +139,15 @@ void YellowPlayer::paint (juce::Graphics& g)
 
     // Central component
     g.setColour (YellowPlayerColours::darkGrey);
-
-    auto centralArea = getLocalBounds().toFloat().reduced(10.f);
-    auto centralAreaCopy = centralArea;
-    auto controlsArea = centralAreaCopy.removeFromBottom(controlsAreaHeight_);  // bottom 10% in original size
-    auto underPlayersArea = centralAreaCopy.removeFromBottom(controlsAreaHeight_);
-    auto playerArea = centralAreaCopy;                              // all area - controlsArea - underPlayersArea
-    
-    g.fillRoundedRectangle(playerArea, 20.0f);
+    g.fillRoundedRectangle(playerArea_, 20.0f);
 
     // Player components
     g.setColour(YellowPlayerColours::black.brighter());
-    auto playerAreaCopy = playerArea;
-    auto topPlayerArea = playerAreaCopy.removeFromTop(playerArea.getHeight() / 2).reduced(10, 7.5f).translated(0, 2.5f);
-    auto bottomPlayerArea = playerAreaCopy.removeFromTop(playerArea.getHeight() / 2).reduced(10, 7.5f).translated(0, -2.5f);
-    
-    g.fillRoundedRectangle(topPlayerArea, 20.0f - 5.0f);
-    g.fillRoundedRectangle(bottomPlayerArea, 20.0f - 5.0f);
+    g.fillRoundedRectangle(topPlayerArea_, 20.0f - 5.0f);
+    g.fillRoundedRectangle(bottomPlayerArea_, 20.0f - 5.0f);
 
-    topSlider_.setBounds(topPlayerArea.withHeight(20).withBottomY(topPlayerArea.getBottom() - 15).reduced(10, 0).toNearestInt());
-    bottomSlider_.setBounds(bottomPlayerArea.withHeight(20).withBottomY(bottomPlayerArea.getBottom() - 15).reduced(10, 0).toNearestInt());
-
-    topSoundWave_.setBounds(topPlayerArea.reduced(10, 40).translated(0, -5).toNearestInt());
-
-    // Controls
-    pauseButton_.setBounds(controlsArea.withLeft(controlsArea.getCentreX()).withRight(controlsArea.getCentreX() + controlsAreaHeight_).toNearestInt());
-    playButton_.setBounds(controlsArea.withLeft(controlsArea.getCentreX() + controlsAreaHeight_).withRight(controlsArea.getCentreX() + controlsAreaHeight_ * 2).toNearestInt());
-    plusButton_.setBounds(controlsArea.withLeft(controlsArea.getRight() - controlsAreaHeight_).toNearestInt());
-    
-    // Text
-    auto clockArea = controlsArea.removeFromLeft(controlsArea.getWidth() / 2.0f);
-    auto clockAreaDrawingBounds = clockArea.reduced(2.0f);
+    // Time
+    auto clockAreaDrawingBounds = timeArea_.reduced(2.0f);
     g.setColour(lookAndFeel.findColour(juce::Label::textColourId));
 
     juce::RelativeTime currentTime(transportSource_.getCurrentPosition());
@@ -179,9 +159,39 @@ void YellowPlayer::paint (juce::Graphics& g)
 
 void YellowPlayer::resized()
 {
-    // This method is where you should set the bounds of any child
-    // components that your component contains..
+    static int resize_counter = 0;
+    DBG("Resize #" << resize_counter++);
 
+    // Big areas
+    centralArea_ = getLocalBounds().toFloat().reduced(10.f);
+
+    // [ the order of these is important
+    auto centralAreaCopy = centralArea_;
+    controlsArea_ = centralAreaCopy.removeFromBottom(controlsAreaHeight_);  // bottom 10% in original size
+    underPlayersArea_ = centralAreaCopy.removeFromBottom(controlsAreaHeight_);
+    playerArea_ = centralAreaCopy;  // all area - controlsArea - underPlayersArea
+
+    // Player area components
+    topPlayerArea_ = centralAreaCopy.removeFromTop(playerArea_.getHeight() / 2).reduced(10, 7.5f).translated(0, 2.5f);
+    bottomPlayerArea_ = centralAreaCopy.removeFromTop(playerArea_.getHeight() / 2).reduced(10, 7.5f).translated(0, -2.5f);
+    // closing the area cutting sequence ]
+
+    topSoundWave_.setBounds(topPlayerArea_.reduced(10, 40).translated(0, -5).toNearestInt());
+
+    topSlider_.setBounds(topPlayerArea_.withHeight(20).withBottomY(topPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
+    bottomSlider_.setBounds(bottomPlayerArea_.withHeight(20).withBottomY(bottomPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
+
+    // Controls area components
+    auto controlsAreaCopy = controlsArea_;
+    timeArea_ = controlsAreaCopy.removeFromLeft(controlsArea_.getWidth() / 2.0f);
+
+    DBG(controlsAreaHeight_);
+    DBG("Controls area top : " << controlsArea_.getY());
+    DBG("Controls area bottom : " << controlsArea_.getBottom());
+    DBG("Window bottom : " << getLocalBounds().getBottom());
+    pauseButton_.setBounds(controlsArea_.withLeft(controlsArea_.getCentreX()).withRight(controlsArea_.getCentreX() + controlsAreaHeight_).toNearestInt());
+    playButton_.setBounds(controlsArea_.withLeft(controlsArea_.getCentreX() + controlsAreaHeight_).withRight(controlsArea_.getCentreX() + controlsAreaHeight_ * 2).toNearestInt());
+    plusButton_.setBounds(controlsArea_.withLeft(controlsArea_.getRight() - controlsAreaHeight_).toNearestInt());
 }
 
 void YellowPlayer::changeAndHandleState(TransportState newState)
@@ -194,22 +204,22 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
     switch (state_) {
         case TransportState::Starting:
             transportSource_.start();
-            startTimer(500);
-            
+
         case TransportState::Playing:
+            startTimer(500);
             playButton_.setEnabled(false);
             pauseButton_.setEnabled(true);
             break;
-        
+
         case TransportState::Pausing:
             transportSource_.stop();
-            
+
         case TransportState::Paused:
             playButton_.setEnabled(true);
             pauseButton_.setEnabled(false);
             stopTimer();
             break;
-            
+
         default:
             break;
     }
