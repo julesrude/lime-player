@@ -52,7 +52,7 @@ void YellowPlayer::changeListenerCallback (juce::ChangeBroadcaster* source)
         if (transportSource_.isPlaying()) {
             state_ = TransportState::Playing;
         } else {
-            state_ = TransportState::Stopped;
+            state_ = TransportState::Paused;
         }
     }
 }
@@ -62,7 +62,7 @@ YellowPlayer::YellowPlayer()
     : pauseButton_("Pause", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
     , playButton_("Play", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
     , plusButton_("Add song", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
-    , state_(TransportState::Stopped)
+    , state_(TransportState::Paused)
 {
     setAudioChannels (/* input channels */0, /*output channels */2);
     formatManager_.registerBasicFormats();
@@ -92,7 +92,7 @@ YellowPlayer::YellowPlayer()
 
     plusButton_.onClick = [this]{ plusButtonClicked(); };
     playButton_.onClick = [this]{ playButtonClicked(); };
-    pauseButton_.onClick = [this]{pauseButtonClicked(); };
+    pauseButton_.onClick = [this]{ pauseButtonClicked(); };
 
     playButton_.setEnabled(false);
     pauseButton_.setEnabled(false);
@@ -129,6 +129,9 @@ void YellowPlayer::releaseResources()
 
 void YellowPlayer::paint (juce::Graphics& g)
 {
+    static int paint_counter = 0;
+    DBG("Repaint #" << paint_counter++);
+    
     // Background
     g.fillAll (YellowPlayerColours::black);
 
@@ -138,8 +141,8 @@ void YellowPlayer::paint (juce::Graphics& g)
     auto centralArea = getLocalBounds().toFloat().reduced(10.f);
     auto centralAreaCopy = centralArea;
     auto controlsArea = centralAreaCopy.removeFromBottom(controlsAreaHeight_);  // bottom 10% in original size
-    auto underPlayersArea = centralAreaCopy.removeFromBottom(60.0f);
-    auto playerArea = centralAreaCopy;                              // all area - 60 - 60
+    auto underPlayersArea = centralAreaCopy.removeFromBottom(controlsAreaHeight_);
+    auto playerArea = centralAreaCopy;                              // all area - controlsArea - underPlayersArea
     
     g.fillRoundedRectangle(playerArea, 20.0f);
 
@@ -166,10 +169,10 @@ void YellowPlayer::paint (juce::Graphics& g)
     auto clockArea = controlsArea.removeFromLeft(controlsArea.getWidth() / 2.0f);
     auto clockAreaDrawingBounds = clockArea.reduced(2.0f);
     g.setColour(lookAndFeel.findColour(juce::Label::textColourId));
-    
-    juce::Time currentTime = juce::Time::getCurrentTime();
-    juce::String timeString = juce::String (juce::String(currentTime.getHours()).paddedLeft('0', 2) + ":" + (juce::String(currentTime.getMinutes())).paddedLeft('0', 2));
-    auto clockFont = juce::FontOptions ("Helvetica", 60.0f * helveticaMultiplier, juce::Font::plain);
+
+    juce::RelativeTime currentTime(transportSource_.getCurrentPosition());
+    juce::String timeString = juce::String (juce::String((int)currentTime.inMinutes()).paddedLeft('0', 2) + ":" + (juce::String((int)currentTime.inSeconds() % 60)).paddedLeft('0', 2));
+    auto clockFont = juce::FontOptions ("Helvetica", controlsAreaHeight_ * helveticaMultiplier, juce::Font::plain);
     g.setFont(clockFont);
     g.drawSingleLineText (timeString, clockAreaDrawingBounds.getX(), clockAreaDrawingBounds.getBottom());
 }
@@ -191,18 +194,20 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
     switch (state_) {
         case TransportState::Starting:
             transportSource_.start();
+            startTimer(500);
             
         case TransportState::Playing:
             playButton_.setEnabled(false);
             pauseButton_.setEnabled(true);
             break;
         
-        case TransportState::Stopping:
+        case TransportState::Pausing:
             transportSource_.stop();
             
-        case TransportState::Stopped:
+        case TransportState::Paused:
             playButton_.setEnabled(true);
             pauseButton_.setEnabled(false);
+            stopTimer();
             break;
             
         default:
@@ -211,27 +216,33 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
 }
 
 void YellowPlayer::plusButtonClicked() { 
-//    fileChooser_;
-    juce::File songFile ("/Users/jules/Documents/music/My Favorite Things.mp3");
+
+    juce::FileChooser chooser ("Choose a song you want to play...",
+                               juce::File::getSpecialLocation (juce::File::SpecialLocationType::userDocumentsDirectory),
+                               "*.mp3; *.wav");
     
-    auto* reader = formatManager_.createReaderFor(songFile);
-    if (reader != nullptr) {
-        auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
-        transportSource_.setSource(newSource.get());
-        readerSource_.reset(newSource.release());
+    if (chooser.browseForFileToOpen()) {
+        juce::File songFile = chooser.getResult();
+
+        auto* reader = formatManager_.createReaderFor(songFile);
+        if (reader != nullptr) {
+            auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
+            transportSource_.setSource(newSource.get());
+            readerSource_.reset(newSource.release());
+        }
+        
+        playButton_.setEnabled(true);
     }
-    
-    playButton_.setEnabled(true);
-    
 }
 
 void YellowPlayer::pauseButtonClicked() { 
-    changeAndHandleState(TransportState::Stopping);
+    changeAndHandleState(TransportState::Pausing);
 }
-
 
 void YellowPlayer::playButtonClicked() { 
     changeAndHandleState(TransportState::Starting);
 }
 
-
+void YellowPlayer::timerCallback() {
+    repaint();
+}

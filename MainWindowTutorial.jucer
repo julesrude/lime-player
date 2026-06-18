@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="CBJkFI" name="YellowPlayer" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" companyName="YuliiaRuda">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" companyName="YuliiaRuda"
+              defines="JUCE_MODAL_LOOPS_PERMITTED=1">
   <MAINGROUP id="j5TAVt" name="YellowPlayer">
     <GROUP id="{A35C71F9-66A8-29A4-B8DE-943D693C393D}" name="Source">
       <FILE id="o7uWS3" name="SoundWavePath.cpp" compile="1" resource="0"

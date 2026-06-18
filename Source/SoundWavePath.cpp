@@ -14,7 +14,7 @@
 //==============================================================================
 SoundWavePath::SoundWavePath(juce::Colour lines)
 {
-    linesColour = lines;
+    linesColour_ = lines;
 }
 
 SoundWavePath::~SoundWavePath()
@@ -40,37 +40,36 @@ void foreachVerticalBar(const juce::Rectangle<float> drawingBounds,
 
 void SoundWavePath::paint (juce::Graphics& g)
 {
-    g.setColour (linesColour);
+    g.setColour (linesColour_);
 
-    g.drawHorizontalLine(drawingBounds.getCentreY(), drawingBounds.getX(), drawingBounds.getRight());
+    g.drawHorizontalLine(drawingBounds_.getCentreY(), drawingBounds_.getX(), drawingBounds_.getRight());
 
-    foreachVerticalBar(drawingBounds, numMajorDivisions, [this, &g](float x){
-        g.fillRect(juce::Rectangle<float>(thickLineThickness, drawingBounds.getHeight()).withCentre({x, drawingBounds.getCentreY()}));
+    foreachVerticalBar(drawingBounds_, numMajorDivisions_, [this, &g](float x){
+        g.fillRect(juce::Rectangle<float>(thickLineThickness_, drawingBounds_.getHeight()).withCentre({x, drawingBounds_.getCentreY()}));
         DBG("line x : " << x );
     });
 
-    g.fillPath(barTrianglesPath);
+    g.fillPath(barTrianglesPath_);
 
     g.setOpacity(0.15f);
 
-    foreachVerticalBar(drawingBounds, numMinorDivisions, [this, &g](float x){
-        g.fillRect(juce::Rectangle<float>(thickLineThickness, drawingBounds.getHeight()).withCentre({x, drawingBounds.getCentreY()}));
+    foreachVerticalBar(drawingBounds_, numMinorDivisions_, [this, &g](float x){
+        g.fillRect(juce::Rectangle<float>(thickLineThickness_, drawingBounds_.getHeight()).withCentre({x, drawingBounds_.getCentreY()}));
     });
 
 }
 
 void SoundWavePath::resized()
 {
-    barTrianglesPath.clear();
+    barTrianglesPath_.clear();
     
-    drawingBounds = getLocalBounds().toFloat().reduced(thickLineThickness / 2.0f, 0);
+    drawingBounds_ = getLocalBounds().toFloat().reduced(thickLineThickness_ / 2.0f, 0);
 
 
-    float triangleSize = 8.0f;
-    foreachVerticalBar(drawingBounds, numMajorDivisions, [this, triangleSize](float x){
-        barTrianglesPath.addTriangle({x - triangleSize, drawingBounds.getY()},                  // left-top
-                                     {x,                drawingBounds.getY() + triangleSize},   // center
-                                     {x + triangleSize, drawingBounds.getY()});                 // right-top
+    foreachVerticalBar(drawingBounds_, numMajorDivisions_, [this](float x){
+        barTrianglesPath_.addTriangle({x - triangleSize_, drawingBounds_.getY()},                  // left-top
+                                     {x,                drawingBounds_.getY() + triangleSize_},   // center
+                                     {x + triangleSize_, drawingBounds_.getY()});                 // right-top
     });
 
 }

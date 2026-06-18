@@ -26,15 +26,15 @@ public:
     
 
 private:
-    juce::Colour linesColour;
+    juce::Rectangle<float> drawingBounds_;
+
+    juce::Path barTrianglesPath_;
+    float triangleSize_ = 4.0f;
     
-    juce::Path barTrianglesPath;
-    
-    juce::Rectangle<float> drawingBounds;
-    
-    float thickLineThickness = 2.0f;
-    int numMajorDivisions = 5;
-    int numMinorDivisions = 30;
+    juce::Colour linesColour_;
+    float thickLineThickness_ = 1.0f;
+    int numMajorDivisions_ = 5;
+    int numMinorDivisions_ = 30;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SoundWavePath)
 };

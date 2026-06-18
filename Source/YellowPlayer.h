@@ -36,7 +36,8 @@ public:
 /*
 */
 class YellowPlayer  : public juce::AudioAppComponent,
-                      public juce::ChangeListener
+                      public juce::ChangeListener,
+                      private juce::Timer
 {
 public:
     YellowPlayer();
@@ -52,11 +53,13 @@ public:
     void resized() override;
     
     enum TransportState {
-        Stopped,
+        Paused,
         Starting,
         Playing,
-        Stopping
+        Pausing
     };
+    
+    void timerCallback () override;
 
 private:
     void changeAndHandleState(TransportState newState);
@@ -76,15 +79,13 @@ private:
 
     SoundWavePath topSoundWave_ = {YellowPlayerColours::white};
 
-    const float controlsAreaHeight_ = 60.0f;
+    const float controlsAreaHeight_ = 50.0f;
     const float helveticaMultiplier = 1.35f; // (height / ascent) + a little because the numbers are lower than ascent
 
     juce::AudioFormatManager formatManager_;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource_;
     juce::AudioTransportSource transportSource_;
     TransportState state_;
-    
-    std::unique_ptr<juce::FileChooser> fileChooser_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (YellowPlayer)
 };
