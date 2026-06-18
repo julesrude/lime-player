@@ -11,52 +11,6 @@
 #include <JuceHeader.h>
 #include "YellowPlayer.h"
 
-//============================== SHAPES ========================================
-
-juce::Path plusShape(float size, float thickness) {
-    juce::Path plus;
-
-    // horisontal long rectangle
-    plus.addRectangle(0, size / 2.0f - thickness / 2.0f, size, thickness);
-    // vertical long rectangle
-    plus.addRectangle(size / 2.0f - thickness / 2.0f, 0, thickness, size);
-    
-    return plus;
-}
-
-juce::Path pauseShape(float height, float width, float thickness) {
-    juce::Path pause;
-
-    // two long vertical rectangles
-    pause.addRectangle(0, 0, thickness, height);
-    pause.addRectangle(width - thickness, 0, thickness, height);
-    
-    return pause;
-}
-
-juce::Path playShape(float height, float width) {
-    juce::Path play;
-
-    // two long vertical rectangles
-    play.addTriangle(0, 0, width, height / 2.0, 0, height);
-    
-    return play;
-}
-
-//============================== LISTENER ========================================
-
-void YellowPlayer::changeListenerCallback (juce::ChangeBroadcaster* source)
-{
-    if (source == &transportSource_)
-    {
-        if (transportSource_.isPlaying()) {
-            state_ = TransportState::Playing;
-        } else {
-            state_ = TransportState::Paused;
-        }
-    }
-}
-
 //==============================================================================
 YellowPlayer::YellowPlayer()
     : pauseButton_("Pause", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
@@ -127,6 +81,51 @@ void YellowPlayer::releaseResources()
     transportSource_.releaseResources();
 }
 
+//========================== PLAY / PAUSE LOGIC =================================
+
+void YellowPlayer::changeAndHandleState(TransportState newState)
+{
+    if (newState == state_)
+        return;
+    
+    state_ = newState;
+    
+    switch (state_) {
+        case TransportState::Starting:
+            transportSource_.start();
+
+        case TransportState::Playing:
+            startTimer(500);
+            playButton_.setEnabled(false);
+            pauseButton_.setEnabled(true);
+            break;
+
+        case TransportState::Pausing:
+            transportSource_.stop();
+
+        case TransportState::Paused:
+            playButton_.setEnabled(true);
+            pauseButton_.setEnabled(false);
+            stopTimer();
+            break;
+
+        default:
+            break;
+    }
+}
+
+void YellowPlayer::changeListenerCallback (juce::ChangeBroadcaster* source)
+{
+    if (source == &transportSource_)
+    {
+        if (transportSource_.isPlaying()) {
+            changeAndHandleState(TransportState::Playing);
+        } else {
+            changeAndHandleState(TransportState::Paused);
+        }
+    }
+}
+
 // ============================ GUI ============================
 
 void YellowPlayer::paint (juce::Graphics& g)
@@ -194,37 +193,6 @@ void YellowPlayer::resized()
     plusButton_.setBounds(controlsArea_.withLeft(controlsArea_.getRight() - controlsAreaHeight_).toNearestInt());
 }
 
-void YellowPlayer::changeAndHandleState(TransportState newState)
-{
-    if (newState == state_)
-        return;
-    
-    state_ = newState;
-    
-    switch (state_) {
-        case TransportState::Starting:
-            transportSource_.start();
-
-        case TransportState::Playing:
-            startTimer(500);
-            playButton_.setEnabled(false);
-            pauseButton_.setEnabled(true);
-            break;
-
-        case TransportState::Pausing:
-            transportSource_.stop();
-
-        case TransportState::Paused:
-            playButton_.setEnabled(true);
-            pauseButton_.setEnabled(false);
-            stopTimer();
-            break;
-
-        default:
-            break;
-    }
-}
-
 void YellowPlayer::plusButtonClicked() { 
 
     juce::FileChooser chooser ("Choose a song you want to play...",
@@ -240,7 +208,7 @@ void YellowPlayer::plusButtonClicked() {
             transportSource_.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
             readerSource_.reset(newSource.release());
         }
-        
+
         playButton_.setEnabled(true);
     }
 }
@@ -255,4 +223,36 @@ void YellowPlayer::playButtonClicked() {
 
 void YellowPlayer::timerCallback() {
     repaint();
+}
+
+//============================== SHAPES ========================================
+
+juce::Path plusShape(float size, float thickness) {
+    juce::Path plus;
+
+    // horisontal long rectangle
+    plus.addRectangle(0, size / 2.0f - thickness / 2.0f, size, thickness);
+    // vertical long rectangle
+    plus.addRectangle(size / 2.0f - thickness / 2.0f, 0, thickness, size);
+    
+    return plus;
+}
+
+juce::Path pauseShape(float height, float width, float thickness) {
+    juce::Path pause;
+
+    // two long vertical rectangles
+    pause.addRectangle(0, 0, thickness, height);
+    pause.addRectangle(width - thickness, 0, thickness, height);
+    
+    return pause;
+}
+
+juce::Path playShape(float height, float width) {
+    juce::Path play;
+
+    // two long vertical rectangles
+    play.addTriangle(0, 0, width, height / 2.0, 0, height);
+    
+    return play;
 }
