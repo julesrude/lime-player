@@ -237,7 +237,7 @@ void YellowPlayer::plusButtonClicked() {
         auto* reader = formatManager_.createReaderFor(songFile);
         if (reader != nullptr) {
             auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
-            transportSource_.setSource(newSource.get());
+            transportSource_.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
             readerSource_.reset(newSource.release());
         }
         
