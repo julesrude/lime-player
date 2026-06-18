@@ -31,9 +31,9 @@ YellowPlayer::YellowPlayer()
     float buttonSize = 50.0f;
     float linesWidth = 10.0f;
 
-    pauseButton_.setShape(pauseShape(buttonSize, 30.f, linesWidth), true, true, true);
-    playButton_.setShape(playShape(buttonSize, buttonSize * 0.75f), true, true, true);
-    plusButton_.setShape(plusShape(buttonSize, linesWidth), true, true, true);
+    pauseButton_.setShape(YellowPlayerLookAndFeel::pauseShape(buttonSize, 30.f, linesWidth), true, true, true);
+    playButton_.setShape(YellowPlayerLookAndFeel::playShape(buttonSize, buttonSize * 0.75f), true, true, true);
+    plusButton_.setShape(YellowPlayerLookAndFeel::plusShape(buttonSize, linesWidth), true, true, true);
 
     addAndMakeVisible(topSlider_);
     addAndMakeVisible(bottomSlider_);
@@ -223,36 +223,4 @@ void YellowPlayer::playButtonClicked() {
 
 void YellowPlayer::timerCallback() {
     repaint();
-}
-
-//============================== SHAPES ========================================
-
-juce::Path plusShape(float size, float thickness) {
-    juce::Path plus;
-
-    // horisontal long rectangle
-    plus.addRectangle(0, size / 2.0f - thickness / 2.0f, size, thickness);
-    // vertical long rectangle
-    plus.addRectangle(size / 2.0f - thickness / 2.0f, 0, thickness, size);
-    
-    return plus;
-}
-
-juce::Path pauseShape(float height, float width, float thickness) {
-    juce::Path pause;
-
-    // two long vertical rectangles
-    pause.addRectangle(0, 0, thickness, height);
-    pause.addRectangle(width - thickness, 0, thickness, height);
-    
-    return pause;
-}
-
-juce::Path playShape(float height, float width) {
-    juce::Path play;
-
-    // two long vertical rectangles
-    play.addTriangle(0, 0, width, height / 2.0, 0, height);
-    
-    return play;
 }

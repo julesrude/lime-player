@@ -40,6 +40,10 @@ public:
     
     void drawLinearSliderOutline(juce::Graphics&, int, int, int, int,
                                  juce::Slider::SliderStyle, juce::Slider&) override {}
+    
+    static juce::Path plusShape(float size, float thickness);
+    static juce::Path pauseShape(float height, float width, float thickness);
+    static juce::Path playShape(float height, float width);
 
 
 private:
