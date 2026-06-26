@@ -56,7 +56,8 @@ public:
         Paused,
         Starting,
         Playing,
-        Pausing
+        Pausing,
+        Finished
     };
     
     void timerCallback () override;
@@ -68,10 +69,18 @@ private:
     void playButtonClicked();
     void pauseButtonClicked();
     
+    juce::AudioFormatManager formatManager_;
+    std::unique_ptr<juce::AudioFormatReaderSource> readerSource_;
+    juce::AudioTransportSource transportSource_;
+    TransportState state_;
+    
+    juce::AudioThumbnailCache thumbnailCache_{5};
+    juce::AudioThumbnail thumbnail_{512, formatManager_, thumbnailCache_};
+    
     YellowPlayerLookAndFeel lookAndFeel;
     
     juce::Rectangle<float> centralArea_;
-    juce::Rectangle<float> controlsArea_;       // bottom part with buttons and time
+    juce::Rectangle<float> controlsArea_;       // bottom part with music control buttons and time
     juce::Rectangle<float> playerArea_;         // part where the song timeline is
     juce::Rectangle<float> underPlayersArea_;   // part between player and controls
 
@@ -87,15 +96,11 @@ private:
     juce::ShapeButton playButton_;
     juce::ShapeButton plusButton_;
 
-    SoundWavePath topSoundWave_ = {YellowPlayerColours::white};
+    SoundWavePath topSoundWave_ = {thumbnail_, 0};
+    SoundWavePath bottomSoundWave_ = {thumbnail_, 1};
 
     const float controlsAreaHeight_ = 50.0f;
     const float helveticaMultiplier = 1.35f; // (height / ascent) + a little because the numbers are lower than ascent
-
-    juce::AudioFormatManager formatManager_;
-    std::unique_ptr<juce::AudioFormatReaderSource> readerSource_;
-    juce::AudioTransportSource transportSource_;
-    TransportState state_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (YellowPlayer)
 };

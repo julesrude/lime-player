@@ -13,10 +13,10 @@
 
 //==============================================================================
 YellowPlayer::YellowPlayer()
-    : pauseButton_("Pause", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
+    : state_(TransportState::Paused)
+    , pauseButton_("Pause", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
     , playButton_("Play", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
     , plusButton_("Add song", YellowPlayerColours::lime, YellowPlayerColours::lime.brighter(), YellowPlayerColours::lime)
-    , state_(TransportState::Paused)
 {
     setAudioChannels (/* input channels */0, /*output channels */2);
     formatManager_.registerBasicFormats();
@@ -38,6 +38,7 @@ YellowPlayer::YellowPlayer()
     addAndMakeVisible(topSlider_);
     addAndMakeVisible(bottomSlider_);
     addAndMakeVisible(topSoundWave_);
+    addAndMakeVisible(bottomSoundWave_);
 
     DBG("Add and make visible");
     addAndMakeVisible(pauseButton_);
@@ -108,6 +109,13 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
             pauseButton_.setEnabled(false);
             stopTimer();
             break;
+            
+        case TransportState::Finished:
+            playButton_.setEnabled(true);
+            pauseButton_.setEnabled(false);
+            stopTimer();
+            transportSource_.setPosition(0.0f);
+            break;
 
         default:
             break;
@@ -121,7 +129,11 @@ void YellowPlayer::changeListenerCallback (juce::ChangeBroadcaster* source)
         if (transportSource_.isPlaying()) {
             changeAndHandleState(TransportState::Playing);
         } else {
-            changeAndHandleState(TransportState::Paused);
+            if (transportSource_.hasStreamFinished()) {
+                changeAndHandleState(TransportState::Finished);
+            } else {
+                changeAndHandleState(TransportState::Paused);
+            }
         }
     }
 }
@@ -176,6 +188,7 @@ void YellowPlayer::resized()
     // closing the area cutting sequence ]
 
     topSoundWave_.setBounds(topPlayerArea_.reduced(10, 40).translated(0, -5).toNearestInt());
+    bottomSoundWave_.setBounds(bottomPlayerArea_.reduced(10, 40).translated(0, -5).toNearestInt());
 
     topSlider_.setBounds(topPlayerArea_.withHeight(20).withBottomY(topPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
     bottomSlider_.setBounds(bottomPlayerArea_.withHeight(20).withBottomY(bottomPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
@@ -207,6 +220,11 @@ void YellowPlayer::plusButtonClicked() {
             auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
             transportSource_.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
             readerSource_.reset(newSource.release());
+
+            topSoundWave_.setSourceForWaveform(new juce::FileInputSource(songFile));
+            topSoundWave_.repaint();
+            bottomSoundWave_.setSourceForWaveform(new juce::FileInputSource(songFile));
+            bottomSoundWave_.repaint();
         }
 
         playButton_.setEnabled(true);
