@@ -91,6 +91,7 @@ private:
 
     SoundLevelSlider topSlider_;
     SoundLevelSlider bottomSlider_;
+    float sliderHeight_ = 20.0f;
 
     juce::ShapeButton pauseButton_;
     juce::ShapeButton playButton_;
@@ -100,7 +101,6 @@ private:
     SoundWavePath bottomSoundWave_ = {thumbnail_, 1};
 
     const float controlsAreaHeight_ = 50.0f;
-    const float helveticaMultiplier = 1.35f; // (height / ascent) + a little because the numbers are lower than ascent
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (YellowPlayer)
 };

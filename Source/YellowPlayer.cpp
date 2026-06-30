@@ -163,9 +163,11 @@ void YellowPlayer::paint (juce::Graphics& g)
 
     juce::RelativeTime currentTime(transportSource_.getCurrentPosition());
     juce::String timeString = juce::String (juce::String((int)currentTime.inMinutes()).paddedLeft('0', 2) + ":" + (juce::String((int)currentTime.inSeconds() % 60)).paddedLeft('0', 2));
-    auto clockFont = juce::FontOptions ("Helvetica", controlsAreaHeight_ * helveticaMultiplier, juce::Font::plain);
+    auto clockFont = YellowPlayerLookAndFeel::getHelveticaForHeight(controlsAreaHeight_);
     g.setFont(clockFont);
     g.drawSingleLineText (timeString, clockAreaDrawingBounds.getX(), clockAreaDrawingBounds.getBottom());
+    
+    g.drawRect(topPlayerArea_, 2.0f);
 }
 
 void YellowPlayer::resized()
@@ -187,11 +189,11 @@ void YellowPlayer::resized()
     bottomPlayerArea_ = centralAreaCopy.removeFromTop(playerArea_.getHeight() / 2).reduced(10, 7.5f).translated(0, -2.5f);
     // closing the area cutting sequence ]
 
-    topSoundWave_.setBounds(topPlayerArea_.reduced(10, 40).translated(0, -5).toNearestInt());
-    bottomSoundWave_.setBounds(bottomPlayerArea_.reduced(10, 40).translated(0, -5).toNearestInt());
+    topSlider_.setBounds(topPlayerArea_.withHeight(sliderHeight_).withBottomY(topPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
+    bottomSlider_.setBounds(bottomPlayerArea_.withHeight(sliderHeight_).withBottomY(bottomPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestIn
 
-    topSlider_.setBounds(topPlayerArea_.withHeight(20).withBottomY(topPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
-    bottomSlider_.setBounds(bottomPlayerArea_.withHeight(20).withBottomY(bottomPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
+    topSoundWave_.setBounds(topPlayerArea_.getX() + 10, topPlayerArea_.getY() + 10, topPlayerArea_.getWidth() - 2 * 10, topSlider_.getY() - topPlayerArea_.getY() - 2 * 10);
+    bottomSoundWave_.setBounds(bottomPlayerArea_.getX() + 10, bottomPlayerArea_.getY() + 10, bottomPlayerArea_.getWidth() - 2 * 10, bottomSlider_.getY() - bottomPlayerArea_.getY() - 2 * 10);
 
     // Controls area components
     auto controlsAreaCopy = controlsArea_;

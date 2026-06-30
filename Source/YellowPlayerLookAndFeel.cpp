@@ -33,6 +33,11 @@ juce::Label* YellowPlayerLookAndFeel::createSliderTextBox (juce::Slider& slider)
     return returnLabel;
 }
 
+juce::Font YellowPlayerLookAndFeel::getLabelFont(juce::Label &label) {
+    return juce::FontOptions(juce::jmin((float)(label.getParentHeight()) * 0.8f, 15.0f));
+}
+
+
 void YellowPlayerLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height,
                                        float sliderPos,
                                        float minSliderPos,
@@ -84,4 +89,10 @@ juce::Path YellowPlayerLookAndFeel::playShape(float height, float width) {
     play.addTriangle(0, 0, width, height / 2.0, 0, height);
     
     return play;
+}
+
+juce::FontOptions YellowPlayerLookAndFeel::getHelveticaForHeight(float height) {
+    constexpr float helveticaMultiplier = 1.35f; // (height / ascent) + a little because the numbers end lower than ascent
+
+    return juce::FontOptions ("Helvetica", height * helveticaMultiplier, juce::Font::plain);
 }

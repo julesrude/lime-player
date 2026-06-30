@@ -12,13 +12,11 @@
       <FILE id="x04QaM" name="YellowPlayer.h" compile="0" resource="0" file="Source/YellowPlayer.h"/>
       <FILE id="RrdrNx" name="YellowPlayer.cpp" compile="1" resource="0"
             file="Source/YellowPlayer.cpp"/>
-      <FILE id="mdh3vG" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
-      <FILE id="k3MPjZ" name="MainComponent.cpp" compile="1" resource="0"
-            file="Source/MainComponent.cpp"/>
       <FILE id="xClZwE" name="YellowPlayerLookAndFeel.h" compile="0" resource="0"
             file="Source/YellowPlayerLookAndFeel.h"/>
       <FILE id="LtIKq6" name="YellowPlayerLookAndFeel.cpp" compile="1" resource="0"
             file="Source/YellowPlayerLookAndFeel.cpp"/>
+      <FILE id="jZ5Kpz" name="Utils.h" compile="0" resource="0" file="Source/Utils.h"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>

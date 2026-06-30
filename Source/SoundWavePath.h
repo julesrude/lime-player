@@ -26,16 +26,25 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    // - RESIZING: -
+    // To be used when loading a new song
     void setNewSongLength();
+
+    // Reset time bounds, reset scale pixels, repaint() at the end
     void resetTimeBounds(const float minSec, const float maxSec);
+    
+    // Calculate how many minor and major bars (divisions) should be there, and their starting positions
     void calculateDivisions();
+    // - - - - - - -
+
+    void setSourceForWaveform (juce::InputSource *source);
     
     void changeListenerCallback (juce::ChangeBroadcaster* source) override;
-    
-    void setSourceForWaveform (juce::InputSource *source);
+    void mouseWheelMove (const juce::MouseEvent& event,
+                         const juce::MouseWheelDetails& wheel) override;
 
 private:
-    juce::Rectangle<float> drawingBounds_;
+    juce::Rectangle<float> soundwaveBounds_;
 
     juce::Path trianglesPath_;
     juce::Path majorBarsPath_;
@@ -43,6 +52,7 @@ private:
     float triangleSize_ = 4.0f;
     
     juce::Colour linesColour_ = YellowPlayerColours::white;
+    // #e8878b rgba(232, 135, 139, 1)
     float thickLineThickness_ = 1.0f;
     int numMajorDivisions_ = 5;
     int numMinorDivisions_ = 30;
@@ -51,8 +61,12 @@ private:
     int channel_;
 
     int majorDivisionsIntervalsSec_ = 0;
-    float minSec_ = 0;
-    float maxSec_ = 0;
+    juce::Range<float> secRange_ {0, 0};
+    
+    struct TimeStamp { juce::String text; juce::Rectangle<float> bounds; };
+    std::vector<TimeStamp> timeStamps_{20};
+    
+    YellowPlayerLookAndFeel lookAndFeel_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SoundWavePath)
 };

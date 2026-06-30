@@ -31,6 +31,7 @@ public:
     YellowPlayerLookAndFeel();
     
     juce::Label* createSliderTextBox (juce::Slider& slider) override;
+    juce::Font getLabelFont (juce::Label&) override;
 
     void drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height,
                                            float sliderPos,
@@ -45,6 +46,7 @@ public:
     static juce::Path pauseShape(float height, float width, float thickness);
     static juce::Path playShape(float height, float width);
 
+    static juce::FontOptions getHelveticaForHeight(float height);
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(YellowPlayerLookAndFeel)
