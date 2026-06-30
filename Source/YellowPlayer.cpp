@@ -166,8 +166,6 @@ void YellowPlayer::paint (juce::Graphics& g)
     auto clockFont = YellowPlayerLookAndFeel::getHelveticaForHeight(controlsAreaHeight_);
     g.setFont(clockFont);
     g.drawSingleLineText (timeString, clockAreaDrawingBounds.getX(), clockAreaDrawingBounds.getBottom());
-    
-    g.drawRect(topPlayerArea_, 2.0f);
 }
 
 void YellowPlayer::resized()
@@ -190,7 +188,7 @@ void YellowPlayer::resized()
     // closing the area cutting sequence ]
 
     topSlider_.setBounds(topPlayerArea_.withHeight(sliderHeight_).withBottomY(topPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
-    bottomSlider_.setBounds(bottomPlayerArea_.withHeight(sliderHeight_).withBottomY(bottomPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestIn
+    bottomSlider_.setBounds(bottomPlayerArea_.withHeight(sliderHeight_).withBottomY(bottomPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
 
     topSoundWave_.setBounds(topPlayerArea_.getX() + 10, topPlayerArea_.getY() + 10, topPlayerArea_.getWidth() - 2 * 10, topSlider_.getY() - topPlayerArea_.getY() - 2 * 10);
     bottomSoundWave_.setBounds(bottomPlayerArea_.getX() + 10, bottomPlayerArea_.getY() + 10, bottomPlayerArea_.getWidth() - 2 * 10, bottomSlider_.getY() - bottomPlayerArea_.getY() - 2 * 10);
