@@ -16,6 +16,34 @@
 //==============================================================================
 /*
 */
+namespace {
+std::vector<juce::RelativeTime> zoomingTimeIntervals {
+    juce::RelativeTime::minutes(9),
+    juce::RelativeTime::minutes(3),
+    juce::RelativeTime::minutes(1),
+    juce::RelativeTime::seconds(30),
+    juce::RelativeTime::seconds(10),
+    juce::RelativeTime::seconds(5),
+    juce::RelativeTime::seconds(2),
+    juce::RelativeTime::seconds(1),
+    juce::RelativeTime::milliseconds(250),
+    juce::RelativeTime::milliseconds(100)
+};
+
+
+std::pair<juce::RelativeTime, juce::RelativeTime> majMinIntervalFromRange(float secRange) {
+    juce::RelativeTime range{(double)secRange};
+    
+    for (int i = 0; i < zoomingTimeIntervals.size() - 3; ++i) {
+        if (range > zoomingTimeIntervals[i]) {
+            return {zoomingTimeIntervals[i + 1], zoomingTimeIntervals[i + 3]};
+        }
+    }
+    return {*(zoomingTimeIntervals.end() - 3), *(zoomingTimeIntervals.end() - 1)};
+}
+}
+
+
 class SoundWavePath  : public juce::Component,
                        public juce::ChangeListener
 {
@@ -34,7 +62,7 @@ public:
     void resetTimeBounds(const float minSec, const float maxSec);
     
     // Calculate how many minor and major bars (divisions) should be there, and their starting positions
-    void calculateDivisions();
+    void calculateResizedDivisions();
     // - - - - - - -
 
     void setSourceForWaveform (juce::InputSource *source);
@@ -60,7 +88,8 @@ private:
     juce::AudioThumbnail &thumbnail_;
     int channel_;
 
-    int majorDivisionsIntervalsSec_ = 0;
+    float majorDivisionsIntervalsSec_ = 0;
+    float minorDivisionsIntervalsSec_ = 0;
     juce::Range<float> secRange_ {0, 0};
     
     struct TimeStamp { juce::String text; juce::Rectangle<float> bounds; };

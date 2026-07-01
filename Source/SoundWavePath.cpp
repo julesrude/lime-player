@@ -74,15 +74,13 @@ void SoundWavePath::paint (juce::Graphics& g)
 void SoundWavePath::resized()
 {
     soundwaveBounds_ = getLocalBounds().toFloat().reduced(thickLineThickness_ / 2.0f, 10.0f).translated(0, 10.0f);
-    calculateDivisions();
+    calculateResizedDivisions();
 }
 
 void SoundWavePath::changeListenerCallback(juce::ChangeBroadcaster *source) {
     if (source == &thumbnail_) {
         repaint();
     }
-
-    DBG("change");
 }
 
 void SoundWavePath::setSourceForWaveform(juce::InputSource *source) {
@@ -98,27 +96,20 @@ void SoundWavePath::resetTimeBounds(const float minSec, const float maxSec) {
     secRange_.setStart(minSec);
     secRange_.setEnd(maxSec);
 
-    const float range = secRange_.getLength();
-    const int fullMinutesRange = (int)(range / 60);
+    std::pair<juce::RelativeTime, juce::RelativeTime> intervals = majMinIntervalFromRange(secRange_.getLength());
 
-    // TODO: what is the maximum?
-    if (fullMinutesRange > 7) {
-        majorDivisionsIntervalsSec_ = (fullMinutesRange / 4) * 60;
-    } else if (fullMinutesRange > 2) {
-        majorDivisionsIntervalsSec_ = 60;
-    } else {
-        majorDivisionsIntervalsSec_ = range / 5;
-    }
+    majorDivisionsIntervalsSec_ = intervals.first.inSeconds();
+    minorDivisionsIntervalsSec_ = intervals.second.inSeconds();
 
-    calculateDivisions();
+    calculateResizedDivisions();
     repaint(); // TODO: not sure about it!
 }
 
-void SoundWavePath::calculateDivisions() {
-    float start = secRange_.getStart();
-    float end = secRange_.getEnd();
-    float range = secRange_.getLength();
-
+void SoundWavePath::calculateResizedDivisions() {
+    const float start = secRange_.getStart();
+    const float end = secRange_.getEnd();
+    const float range = secRange_.getLength();
+    
     trianglesPath_.clear();
     majorBarsPath_.clear();
     minorBarsPath_.clear();
@@ -126,28 +117,43 @@ void SoundWavePath::calculateDivisions() {
     
     float firstMajorDivision = 0;
     float firstMinorDivision = 0;
+    
     float spaceBtwMajorDivisions = soundwaveBounds_.getWidth() / 5.0f;
     float spaceBtwMinorDivisions = (soundwaveBounds_.getWidth() / 5.0f) / 6.0f;
-    if (end > 0) {
-        int firstMajorDivisionSec = 0;
-        if ((int)std::ceil(secRange_.getStart()) % majorDivisionsIntervalsSec_ == 0) {
-            firstMajorDivisionSec = (int)std::ceil(start) / majorDivisionsIntervalsSec_;
-        } else {
-            firstMajorDivisionSec = (int)std::ceil(start) / majorDivisionsIntervalsSec_ + majorDivisionsIntervalsSec_;
-        }
-        firstMajorDivision = (((float)firstMajorDivisionSec - start)/ range ) * soundwaveBounds_.getWidth();
-        spaceBtwMajorDivisions = ((float)majorDivisionsIntervalsSec_ / range ) * soundwaveBounds_.getWidth();
 
-        float minorDivisionsIntervalSec = (float)majorDivisionsIntervalsSec_ / 6.0f;
+    if (end > 0) {
+        spaceBtwMajorDivisions = majorDivisionsIntervalsSec_ / range * soundwaveBounds_.getWidth();
+        spaceBtwMinorDivisions = minorDivisionsIntervalsSec_ / range * soundwaveBounds_.getWidth();
+        
+        float firstMajorDivisionSec = 0;
+        if (secRange_.contains((int)(start / majorDivisionsIntervalsSec_))) {
+            firstMajorDivisionSec = (int)(start / majorDivisionsIntervalsSec_) * majorDivisionsIntervalsSec_;
+        } else {
+            firstMajorDivisionSec = (int)(start / majorDivisionsIntervalsSec_) * majorDivisionsIntervalsSec_ + majorDivisionsIntervalsSec_;
+        }
+
+        firstMajorDivision = ((firstMajorDivisionSec - start) / range ) * soundwaveBounds_.getWidth();
+        spaceBtwMajorDivisions = (majorDivisionsIntervalsSec_ / range ) * soundwaveBounds_.getWidth();
+
         int leftOffsetFromFirstMajor = 0;
-        for (int i = 0; i < 6; i++) {
-            if ((firstMajorDivisionSec - i * minorDivisionsIntervalSec) < start) {
+        for (int i = 0; i < majorDivisionsIntervalsSec_ / minorDivisionsIntervalsSec_; i++) {
+            float candidate = firstMajorDivisionSec - i * minorDivisionsIntervalsSec_;
+            if (candidate == start) {
+                leftOffsetFromFirstMajor = i;
+                break;
+            } else if (candidate < start) {
+                leftOffsetFromFirstMajor = i - 1;
+                break;
+            }
+
+            if (i + 1 >=  majorDivisionsIntervalsSec_ / minorDivisionsIntervalsSec_) {
                 leftOffsetFromFirstMajor = i;
             }
         }
-        float firstMinorDivisionSec = firstMajorDivisionSec - leftOffsetFromFirstMajor * minorDivisionsIntervalSec;
+
+        float firstMinorDivisionSec = firstMajorDivisionSec - leftOffsetFromFirstMajor * minorDivisionsIntervalsSec_;
         firstMinorDivision = ((firstMinorDivisionSec - start) / range) * soundwaveBounds_.getWidth();
-        spaceBtwMinorDivisions = (minorDivisionsIntervalSec / range) * soundwaveBounds_.getWidth();
+        spaceBtwMinorDivisions = (minorDivisionsIntervalsSec_ / range) * soundwaveBounds_.getWidth();
     }
 
     foreachVerticalBar(soundwaveBounds_, firstMajorDivision, spaceBtwMajorDivisions, [this, start, range](float x){
@@ -174,16 +180,36 @@ void SoundWavePath::calculateDivisions() {
 
 void SoundWavePath::mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) {
     if ((wheel.deltaY > 0 && secRange_.getLength() <= 10.0f) ||
-        (wheel.deltaY < 0 && secRange_.getLength() >= thumbnail_.getTotalLength())) {
+        (wheel.deltaY < 0 && secRange_.getLength() >= thumbnail_.getTotalLength()) ||
+        (wheel.deltaY == 0)) {
             return;
         }
 
     float modifier = (wheel.deltaY > 0 ? 1 : -1);
 
-    float positionSec = (event.position.getX() /* not sure which X is gonna be here*/ / soundwaveBounds_.getWidth()) * (secRange_.getLength());
+    float positionSec = secRange_.getStart() + event.position.getX() /* not sure which X is gonna be here*/ / soundwaveBounds_.getWidth() * secRange_.getLength();
 
-    secRange_.setStart(secRange_.getStart() + modifier * (positionSec - secRange_.getStart()) * 0.1f);
-    secRange_.setEnd(secRange_.getEnd() - modifier * (secRange_.getEnd() - positionSec) * 0.1f);
+    float zoomStep = 0.1;
+    float newRange = secRange_.getLength() * (1 - modifier * zoomStep);
+
+    if (newRange < 10)
+        newRange = 10;
+    if (newRange > thumbnail_.getTotalLength())
+        newRange = thumbnail_.getTotalLength();
+
+    float newStart = secRange_.getStart() + modifier * (positionSec - secRange_.getStart()) * zoomStep;
+    float newEnd = secRange_.getEnd() - modifier * (secRange_.getEnd() - positionSec) * zoomStep;
     
+    if (newStart < 0) {
+        newStart = 0;
+        newEnd = juce::jmin(newRange, (float)(thumbnail_.getTotalLength()));
+    } else if (newEnd > thumbnail_.getTotalLength()) {
+        newEnd = thumbnail_.getTotalLength();
+        newStart = juce::jmax(0.0f, newEnd - newRange);
+    }
+
+    secRange_.setStart(newStart);
+    secRange_.setEnd(newEnd);
+
     resetTimeBounds(secRange_.getStart(), secRange_.getEnd());
 }
