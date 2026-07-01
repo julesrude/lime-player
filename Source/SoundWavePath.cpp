@@ -185,20 +185,15 @@ void SoundWavePath::mouseWheelMove(const juce::MouseEvent &event, const juce::Mo
             return;
         }
 
-    float modifier = (wheel.deltaY > 0 ? 1 : -1);
+    const float modifier = (wheel.deltaY > 0 ? 1 : -1);
+    const float mousePositionSec = secRange_.getStart() + event.position.getX() / soundwaveBounds_.getWidth() * secRange_.getLength();
+    const float zoomStep = 0.1;
 
-    float positionSec = secRange_.getStart() + event.position.getX() /* not sure which X is gonna be here*/ / soundwaveBounds_.getWidth() * secRange_.getLength();
-
-    float zoomStep = 0.1;
     float newRange = secRange_.getLength() * (1 - modifier * zoomStep);
+    newRange = juce::jlimit(10.0f, (float)thumbnail_.getTotalLength(), newRange);
 
-    if (newRange < 10)
-        newRange = 10;
-    if (newRange > thumbnail_.getTotalLength())
-        newRange = thumbnail_.getTotalLength();
-
-    float newStart = secRange_.getStart() + modifier * (positionSec - secRange_.getStart()) * zoomStep;
-    float newEnd = secRange_.getEnd() - modifier * (secRange_.getEnd() - positionSec) * zoomStep;
+    float newStart = secRange_.getStart() + modifier * (mousePositionSec - secRange_.getStart()) * zoomStep;
+    float newEnd = secRange_.getEnd() - modifier * (secRange_.getEnd() - mousePositionSec) * zoomStep;
     
     if (newStart < 0) {
         newStart = 0;
