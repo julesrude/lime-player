@@ -81,13 +81,13 @@ void SoundWavePath::paint (juce::Graphics& g)
     g.fillPath(trianglesPath_);
 
     // Audio waveform
-    g.setOpacity(0.15f);
+    g.setOpacity(0.25f);
     if (thumbnail_.getNumChannels() != 0) {
         thumbnail_.drawChannel (g, soundwaveBounds_.toNearestInt(),
                                 secRange_.getStart(),               // start time
                                 secRange_.getEnd(),                 // end time
                                 channel_,
-                                0.7f);                              // vertical zoom
+                                0.6f);                              // vertical zoom
     }
 
     // Time stamps on major bars
@@ -107,7 +107,7 @@ void SoundWavePath::paint (juce::Graphics& g)
 
 void SoundWavePath::resized()
 {
-    soundwaveBounds_ = getLocalBounds().toFloat().reduced(widthOffset_, 10.0f).translated(0, 10.0f);
+    soundwaveBounds_ = getLocalBounds().toFloat().reduced(horisontalMargin_, 20.0f).translated(0, 10.0f);
     calculateResizedDivisions();
 }
 
@@ -207,7 +207,7 @@ void SoundWavePath::calculateResizedDivisions() {
     });
 
     foreachVerticalBar(soundwaveBounds_, firstMinorDivision, spaceBtwMinorDivisions, [this](float x){
-        minorBarsPath_.addRectangle(juce::Rectangle<float>(thickLineThickness_, soundwaveBounds_.getHeight())
+        minorBarsPath_.addRectangle(juce::Rectangle<float>(0.5f, soundwaveBounds_.getHeight())
                                     .withCentre({x, soundwaveBounds_.getCentreY()}));
     });
 
@@ -243,7 +243,7 @@ void SoundWavePath::mouseWheelMove(const juce::MouseEvent &event, const juce::Mo
     secRange_.setStart(newStart);
     secRange_.setEnd(newEnd);
 
-    resetTimeBounds(secRange_.getStart(), secRange_.getEnd());
+    onZoom(secRange_);
 }
 
 void SoundWavePath::setCurrentTime(double timeInSeconds)
@@ -265,7 +265,7 @@ void SoundWavePath::recreatePlayPositionMarker()
     if (currentTime_ < secRange_.getStart() || currentTime_ > secRange_.getEnd())
         return;
 
-    float xPos = timeToX(currentTime_);
+    float xPos = juce::roundToInt(timeToX(currentTime_)); // whole numbers give a consistent view of the line accross positions
 
     // Draw vertical line
     playPositionMarkerPath_.addRectangle(juce::Rectangle<float>(thickLineThickness_, soundwaveBounds_.getHeight())

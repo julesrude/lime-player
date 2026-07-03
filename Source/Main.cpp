@@ -55,14 +55,12 @@ public:
         MainWindow(juce::String name) : juce::DocumentWindow(name, juce::Colours::coral, DocumentWindow::allButtons) {
             setUsingNativeTitleBar(true);
             setContentOwned(new YellowPlayer(), true); // true - window is sized as the component/s
-                                                        // false - new component/s are sized to fit the window
+                                                       // false - new component/s are sized to fit the window
             setResizable(true, false);
             setResizeLimits(500, 500, INT_MAX, INT_MAX);
 
-//            setBoundsRelative(0.2f, 0.25f, 0.6f, 0.6f);
             centreWithSize(getWidth(), getHeight()); // calculated width and height based on the content
-                                                      // this should go after all content
-            DBG(getWidth());
+                                                     // this should go after all content
 
             setVisible(true);
         }

@@ -45,6 +45,15 @@ YellowPlayer::YellowPlayer()
     addAndMakeVisible(playButton_);
     addAndMakeVisible(plusButton_);
 
+    topSoundWave_.onZoom = [this](juce::Range<double> range){
+        topSoundWave_.resetTimeBounds(range.getStart(), range.getEnd());
+        bottomSoundWave_.resetTimeBounds(range.getStart(), range.getEnd());
+    };
+    bottomSoundWave_.onZoom = [this](juce::Range<double> range){
+        topSoundWave_.resetTimeBounds(range.getStart(), range.getEnd());
+        bottomSoundWave_.resetTimeBounds(range.getStart(), range.getEnd());
+    };
+
     plusButton_.onClick = [this]{ plusButtonClicked(); };
     playButton_.onClick = [this]{ playButtonClicked(); };
     pauseButton_.onClick = [this]{ pauseButtonClicked(); };
@@ -172,9 +181,6 @@ void YellowPlayer::paint (juce::Graphics& g)
 
 void YellowPlayer::resized()
 {
-    static int resize_counter = 0;
-    DBG("Resize #" << resize_counter++);
-
     // Big areas
     centralArea_ = getLocalBounds().toFloat().reduced(10.f);
 
@@ -192,17 +198,13 @@ void YellowPlayer::resized()
     topSlider_.setBounds(topPlayerArea_.withHeight(sliderHeight_).withBottomY(topPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
     bottomSlider_.setBounds(bottomPlayerArea_.withHeight(sliderHeight_).withBottomY(bottomPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
 
-    topSoundWave_.setBounds(topPlayerArea_.getX() + 10, topPlayerArea_.getY() + 10, topPlayerArea_.getWidth() - 2 * 10, topSlider_.getY() - topPlayerArea_.getY() - 2 * 10);
-    bottomSoundWave_.setBounds(bottomPlayerArea_.getX() + 10, bottomPlayerArea_.getY() + 10, bottomPlayerArea_.getWidth() - 2 * 10, bottomSlider_.getY() - bottomPlayerArea_.getY() - 2 * 10);
+    topSoundWave_.setBounds(topPlayerArea_.getX(), topPlayerArea_.getY(), topPlayerArea_.getWidth(), topSlider_.getY() - topPlayerArea_.getY());
+    bottomSoundWave_.setBounds(bottomPlayerArea_.getX(), bottomPlayerArea_.getY(), bottomPlayerArea_.getWidth(), bottomSlider_.getY() - bottomPlayerArea_.getY());
 
     // Controls area components
     auto controlsAreaCopy = controlsArea_;
     timeArea_ = controlsAreaCopy.removeFromLeft(controlsArea_.getWidth() / 2.0f);
 
-    DBG(controlsAreaHeight_);
-    DBG("Controls area top : " << controlsArea_.getY());
-    DBG("Controls area bottom : " << controlsArea_.getBottom());
-    DBG("Window bottom : " << getLocalBounds().getBottom());
     pauseButton_.setBounds(controlsArea_.withLeft(controlsArea_.getCentreX()).withRight(controlsArea_.getCentreX() + controlsAreaHeight_).toNearestInt());
     playButton_.setBounds(controlsArea_.withLeft(controlsArea_.getCentreX() + controlsAreaHeight_).withRight(controlsArea_.getCentreX() + controlsAreaHeight_ * 2).toNearestInt());
     plusButton_.setBounds(controlsArea_.withLeft(controlsArea_.getRight() - controlsAreaHeight_).toNearestInt());
@@ -213,7 +215,7 @@ void YellowPlayer::plusButtonClicked() {
     juce::FileChooser chooser ("Choose a song you want to play...",
                                juce::File::getSpecialLocation (juce::File::SpecialLocationType::userDocumentsDirectory),
                                "*.mp3; *.wav");
-    
+
     if (chooser.browseForFileToOpen()) {
         juce::File songFile = chooser.getResult();
 

@@ -35,6 +35,8 @@ public:
     
     // Calculate how many minor and major bars (divisions) should be there, and their starting positions
     void calculateResizedDivisions();
+    
+    std::function<void(juce::Range<double>)> onZoom;
     // - - - - - - -
 
     void setSourceForWaveform (juce::InputSource *source);
@@ -42,7 +44,7 @@ public:
     void changeListenerCallback (juce::ChangeBroadcaster* source) override;
     void mouseWheelMove (const juce::MouseEvent& event,
                          const juce::MouseWheelDetails& wheel) override;
-    
+
     // Set the current playback position in seconds
     void setCurrentTime(double timeInSeconds);
 
@@ -78,7 +80,8 @@ private:
 
     // Graphics constants
     const float thickLineThickness_ = 1.0f;
-    const float widthOffset_ = 5.0f; // horizontal inset for soundwaveBounds_, leaves room so edge bars/triangles aren't clipped
+    const float horisontalMargin_ = 15.0f; // leaves room so time stamps and triangles aren't clipped
+    const float verticalMargin_ = 20.0f;
     const juce::Colour linesColour_ = YellowPlayerColours::white;
     const juce::Colour playPositionMarkerColour_ = juce::Colour(0xffff5252);
 
