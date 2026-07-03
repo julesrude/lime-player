@@ -11,19 +11,34 @@
 #include <JuceHeader.h>
 #include "SoundWavePath.h"
 
-//==============================================================================
-SoundWavePath::SoundWavePath(juce::AudioThumbnail &thumbnail, const int channel)
-    : thumbnail_(thumbnail),
-      channel_(channel)
-{
-    thumbnail_.addChangeListener(this);
-}
-
-SoundWavePath::~SoundWavePath()
-{
-}
-
 namespace {
+// The way these are used is, for the range that is above [i],
+// the major bars interval is 1 step below ([i+1]), the minor bars interval is 3 steps below ([i+3])
+const std::vector<juce::RelativeTime> zoomingTimeIntervals {
+    juce::RelativeTime::minutes(9),
+    juce::RelativeTime::minutes(3),
+    juce::RelativeTime::minutes(1),
+    juce::RelativeTime::seconds(30),
+    juce::RelativeTime::seconds(10),
+    juce::RelativeTime::seconds(5),
+    juce::RelativeTime::seconds(2),
+    juce::RelativeTime::seconds(1),
+    juce::RelativeTime::milliseconds(250),
+    juce::RelativeTime::milliseconds(100)
+};
+
+std::pair<juce::RelativeTime, juce::RelativeTime> majMinIntervalFromRange(float secRange) {
+    juce::RelativeTime range{(double)secRange};
+    
+    // Stop 3 before the end so [i + 3] stays in bounds
+    for (int i = 0; i < (int)zoomingTimeIntervals.size() - 3; ++i) {
+        if (range > zoomingTimeIntervals[i]) {
+            return {zoomingTimeIntervals[i + 1], zoomingTimeIntervals[i + 3]};
+        }
+    }
+    return {*(zoomingTimeIntervals.end() - 3), *(zoomingTimeIntervals.end() - 1)};
+}
+
 template <typename Action>
 void foreachVerticalBar(const juce::Rectangle<float> drawingBounds,
                         const float firstBar,
@@ -37,6 +52,19 @@ void foreachVerticalBar(const juce::Rectangle<float> drawingBounds,
         action(x);
     }
 }
+}
+
+//==============================================================================
+SoundWavePath::SoundWavePath(juce::AudioThumbnail &thumbnail, const int channel)
+    : thumbnail_(thumbnail),
+      channel_(channel)
+{
+    timeStamps_.reserve(maxTimeStamps_);
+    thumbnail_.addChangeListener(this);
+}
+
+SoundWavePath::~SoundWavePath()
+{
 }
 
 void SoundWavePath::paint (juce::Graphics& g)
@@ -69,11 +97,17 @@ void SoundWavePath::paint (juce::Graphics& g)
         g.drawText(timePoint.text, timePoint.bounds, juce::Justification::centred);
     }
 
+    // Draw current time marker if it's in the visible window
+    if (currentTime_ >= secRange_.getStart() && currentTime_ <= secRange_.getEnd())
+    {
+        g.setColour(playPositionMarkerColour_);
+        g.fillPath(playPositionMarkerPath_);
+    }
 }
 
 void SoundWavePath::resized()
 {
-    soundwaveBounds_ = getLocalBounds().toFloat().reduced(thickLineThickness_ / 2.0f, 10.0f).translated(0, 10.0f);
+    soundwaveBounds_ = getLocalBounds().toFloat().reduced(widthOffset_, 10.0f).translated(0, 10.0f);
     calculateResizedDivisions();
 }
 
@@ -106,18 +140,20 @@ void SoundWavePath::resetTimeBounds(const float minSec, const float maxSec) {
 }
 
 void SoundWavePath::calculateResizedDivisions() {
-    const float start = secRange_.getStart();
-    const float end = secRange_.getEnd();
-    const float range = secRange_.getLength();
+    const double start = secRange_.getStart();
+    const double end = secRange_.getEnd();
+    const double range = secRange_.getLength();
     
     trianglesPath_.clear();
     majorBarsPath_.clear();
     minorBarsPath_.clear();
     timeStamps_.clear();
-    
-    float firstMajorDivision = 0;
-    float firstMinorDivision = 0;
-    
+
+    // Coordinates of first bars as defined inside soundwaveBounds_, so 0.0f == soundwaveBounds_.getX()
+    float firstMajorDivision = 0.0f;
+    float firstMinorDivision = 0.0f;
+
+    // Default for when no song is loaded
     float spaceBtwMajorDivisions = soundwaveBounds_.getWidth() / 5.0f;
     float spaceBtwMinorDivisions = (soundwaveBounds_.getWidth() / 5.0f) / 6.0f;
 
@@ -125,19 +161,14 @@ void SoundWavePath::calculateResizedDivisions() {
         spaceBtwMajorDivisions = majorDivisionsIntervalsSec_ / range * soundwaveBounds_.getWidth();
         spaceBtwMinorDivisions = minorDivisionsIntervalsSec_ / range * soundwaveBounds_.getWidth();
         
-        float firstMajorDivisionSec = 0;
-        if (secRange_.contains((int)(start / majorDivisionsIntervalsSec_))) {
-            firstMajorDivisionSec = (int)(start / majorDivisionsIntervalsSec_) * majorDivisionsIntervalsSec_;
-        } else {
-            firstMajorDivisionSec = (int)(start / majorDivisionsIntervalsSec_) * majorDivisionsIntervalsSec_ + majorDivisionsIntervalsSec_;
-        }
+        double firstMajorDivisionSec = std::ceil(start / majorDivisionsIntervalsSec_) * majorDivisionsIntervalsSec_;
 
-        firstMajorDivision = ((firstMajorDivisionSec - start) / range ) * soundwaveBounds_.getWidth();
-        spaceBtwMajorDivisions = (majorDivisionsIntervalsSec_ / range ) * soundwaveBounds_.getWidth();
+        firstMajorDivision = (float)((firstMajorDivisionSec - start) / range ) * soundwaveBounds_.getWidth();
+        spaceBtwMajorDivisions = (float)(majorDivisionsIntervalsSec_ / range ) * soundwaveBounds_.getWidth();
 
         int leftOffsetFromFirstMajor = 0;
-        for (int i = 0; i < majorDivisionsIntervalsSec_ / minorDivisionsIntervalsSec_; i++) {
-            float candidate = firstMajorDivisionSec - i * minorDivisionsIntervalsSec_;
+        for (int i = 0; i < (majorDivisionsIntervalsSec_ / minorDivisionsIntervalsSec_); i++) {
+            double candidate = firstMajorDivisionSec - i * minorDivisionsIntervalsSec_;
             if (candidate == start) {
                 leftOffsetFromFirstMajor = i;
                 break;
@@ -151,16 +182,17 @@ void SoundWavePath::calculateResizedDivisions() {
             }
         }
 
-        float firstMinorDivisionSec = firstMajorDivisionSec - leftOffsetFromFirstMajor * minorDivisionsIntervalsSec_;
+        double firstMinorDivisionSec = firstMajorDivisionSec - leftOffsetFromFirstMajor * minorDivisionsIntervalsSec_;
         firstMinorDivision = ((firstMinorDivisionSec - start) / range) * soundwaveBounds_.getWidth();
         spaceBtwMinorDivisions = (minorDivisionsIntervalsSec_ / range) * soundwaveBounds_.getWidth();
     }
 
-    foreachVerticalBar(soundwaveBounds_, firstMajorDivision, spaceBtwMajorDivisions, [this, start, range](float x){
+    foreachVerticalBar(soundwaveBounds_, firstMajorDivision, spaceBtwMajorDivisions, [this](float x){
 
         TimeStamp timeStamp;
-        juce::RelativeTime timePoint(start + (x / soundwaveBounds_.getWidth()) * range);
-        timeStamp.text = juce::String (juce::String((int)timePoint.inMinutes()) + ":" + (juce::String((int)timePoint.inSeconds() % 60)).paddedLeft('0', 2));
+        const int totalSeconds = juce::roundToInt(xToTime(x));
+        timeStamp.text = juce::String(totalSeconds / 60) + ":"
+                       + juce::String(totalSeconds % 60).paddedLeft('0', 2);
         timeStamp.bounds = {x - 20, soundwaveBounds_.getY() - 12, 40, 10};
 
         timeStamps_.push_back(timeStamp);
@@ -169,13 +201,18 @@ void SoundWavePath::calculateResizedDivisions() {
                                    {x,                soundwaveBounds_.getY() + triangleSize_},   // center
                                    {x + triangleSize_, soundwaveBounds_.getY()});                 // right-top
 
-        majorBarsPath_.addRectangle(juce::Rectangle<float>(thickLineThickness_, soundwaveBounds_.getHeight()).withCentre({x, soundwaveBounds_.getCentreY()}));
+        majorBarsPath_.addRectangle(juce::Rectangle<float>(thickLineThickness_, soundwaveBounds_.getHeight())
+                                    .withCentre({x, soundwaveBounds_.getCentreY()}));
 
     });
 
     foreachVerticalBar(soundwaveBounds_, firstMinorDivision, spaceBtwMinorDivisions, [this](float x){
-        minorBarsPath_.addRectangle(juce::Rectangle<float>(thickLineThickness_, soundwaveBounds_.getHeight()).withCentre({x, soundwaveBounds_.getCentreY()}));
+        minorBarsPath_.addRectangle(juce::Rectangle<float>(thickLineThickness_, soundwaveBounds_.getHeight())
+                                    .withCentre({x, soundwaveBounds_.getCentreY()}));
     });
+
+    // Keep the playback marker aligned with the (possibly changed) view mapping
+    recreatePlayPositionMarker();
 }
 
 void SoundWavePath::mouseWheelMove(const juce::MouseEvent &event, const juce::MouseWheelDetails &wheel) {
@@ -186,8 +223,8 @@ void SoundWavePath::mouseWheelMove(const juce::MouseEvent &event, const juce::Mo
         }
 
     const float modifier = (wheel.deltaY > 0 ? 1 : -1);
-    const float mousePositionSec = secRange_.getStart() + event.position.getX() / soundwaveBounds_.getWidth() * secRange_.getLength();
-    const float zoomStep = 0.1;
+    const float mousePositionSec = (float)xToTime(event.position.getX());
+    const float zoomStep = 0.1f;
 
     float newRange = secRange_.getLength() * (1 - modifier * zoomStep);
     newRange = juce::jlimit(10.0f, (float)thumbnail_.getTotalLength(), newRange);
@@ -207,4 +244,58 @@ void SoundWavePath::mouseWheelMove(const juce::MouseEvent &event, const juce::Mo
     secRange_.setEnd(newEnd);
 
     resetTimeBounds(secRange_.getStart(), secRange_.getEnd());
+}
+
+void SoundWavePath::setCurrentTime(double timeInSeconds)
+{
+    if (std::abs(currentTime_ - timeInSeconds) < 0.001)
+        return; // Avoid unnecessary repaints
+
+    currentTime_ = timeInSeconds;
+
+    recreatePlayPositionMarker();
+    repaint();
+}
+
+void SoundWavePath::recreatePlayPositionMarker()
+{
+    playPositionMarkerPath_.clear();
+
+    // Nothing to draw if the current time is outside the visible range
+    if (currentTime_ < secRange_.getStart() || currentTime_ > secRange_.getEnd())
+        return;
+
+    float xPos = timeToX(currentTime_);
+
+    // Draw vertical line
+    playPositionMarkerPath_.addRectangle(juce::Rectangle<float>(thickLineThickness_, soundwaveBounds_.getHeight())
+                                        .withCentre({xPos, soundwaveBounds_.getCentreY()}));
+    
+    // Draw triangle at the top of the vertical line (same style as major divisions)
+    float triangleTop = soundwaveBounds_.getY();
+    playPositionMarkerPath_.addTriangle(
+                                       xPos, triangleTop + triangleSize_,
+                                       xPos - triangleSize_, triangleTop,
+                                       xPos + triangleSize_, triangleTop
+                                       );
+}
+
+float SoundWavePath::timeToX(double sec) const
+{
+    if (secRange_.getLength() == 0) {
+        return soundwaveBounds_.getX();
+    }
+
+    return soundwaveBounds_.getX()
+         + (float)((sec - secRange_.getStart()) / secRange_.getLength()) * soundwaveBounds_.getWidth();
+}
+
+double SoundWavePath::xToTime(float x) const
+{
+    if (secRange_.getLength() == 0) {
+        return 0.0;
+    }
+
+    return secRange_.getStart()
+         + (x - soundwaveBounds_.getX()) / soundwaveBounds_.getWidth() * secRange_.getLength();
 }

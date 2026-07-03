@@ -96,7 +96,7 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
             transportSource_.start();
 
         case TransportState::Playing:
-            startTimer(500);
+            startTimer(1000 / 30); // ~30 fps for a smoothly moving playback marker
             playButton_.setEnabled(false);
             pauseButton_.setEnabled(true);
             break;
@@ -115,6 +115,8 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
             pauseButton_.setEnabled(false);
             stopTimer();
             transportSource_.setPosition(0.0f);
+            topSoundWave_.setCurrentTime(0.0);
+            bottomSoundWave_.setCurrentTime(0.0);
             break;
 
         default:
@@ -222,8 +224,10 @@ void YellowPlayer::plusButtonClicked() {
             readerSource_.reset(newSource.release());
 
             topSoundWave_.setSourceForWaveform(new juce::FileInputSource(songFile));
+            topSoundWave_.setCurrentTime(0.0);
             topSoundWave_.repaint();
             bottomSoundWave_.setSourceForWaveform(new juce::FileInputSource(songFile));
+            bottomSoundWave_.setCurrentTime(0.0);
             bottomSoundWave_.repaint();
         }
 
@@ -240,5 +244,10 @@ void YellowPlayer::playButtonClicked() {
 }
 
 void YellowPlayer::timerCallback() {
+    const double currentPosition = transportSource_.getCurrentPosition();
+
+    topSoundWave_.setCurrentTime(currentPosition);
+    bottomSoundWave_.setCurrentTime(currentPosition);
+
     repaint();
 }

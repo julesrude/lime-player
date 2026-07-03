@@ -16,34 +16,6 @@
 //==============================================================================
 /*
 */
-namespace {
-std::vector<juce::RelativeTime> zoomingTimeIntervals {
-    juce::RelativeTime::minutes(9),
-    juce::RelativeTime::minutes(3),
-    juce::RelativeTime::minutes(1),
-    juce::RelativeTime::seconds(30),
-    juce::RelativeTime::seconds(10),
-    juce::RelativeTime::seconds(5),
-    juce::RelativeTime::seconds(2),
-    juce::RelativeTime::seconds(1),
-    juce::RelativeTime::milliseconds(250),
-    juce::RelativeTime::milliseconds(100)
-};
-
-
-std::pair<juce::RelativeTime, juce::RelativeTime> majMinIntervalFromRange(float secRange) {
-    juce::RelativeTime range{(double)secRange};
-    
-    for (int i = 0; i < zoomingTimeIntervals.size() - 3; ++i) {
-        if (range > zoomingTimeIntervals[i]) {
-            return {zoomingTimeIntervals[i + 1], zoomingTimeIntervals[i + 3]};
-        }
-    }
-    return {*(zoomingTimeIntervals.end() - 3), *(zoomingTimeIntervals.end() - 1)};
-}
-}
-
-
 class SoundWavePath  : public juce::Component,
                        public juce::ChangeListener
 {
@@ -70,32 +42,45 @@ public:
     void changeListenerCallback (juce::ChangeBroadcaster* source) override;
     void mouseWheelMove (const juce::MouseEvent& event,
                          const juce::MouseWheelDetails& wheel) override;
+    
+    // Set the current playback position in seconds
+    void setCurrentTime(double timeInSeconds);
 
 private:
-    juce::Rectangle<float> soundwaveBounds_;
 
+    void recreatePlayPositionMarker();
+
+    // Helpers, convert between a time in seconds and X within soundwaveBounds_
+    float timeToX(double sec) const;
+    double xToTime(float x) const;
+
+    juce::Rectangle<float> soundwaveBounds_;
+    juce::AudioThumbnail &thumbnail_;
+    int channel_;
+
+    // Vertical bars and their timestamps
     juce::Path trianglesPath_;
     juce::Path majorBarsPath_;
     juce::Path minorBarsPath_;
     float triangleSize_ = 4.0f;
-    
-    juce::Colour linesColour_ = YellowPlayerColours::white;
-    // #e8878b rgba(232, 135, 139, 1)
-    float thickLineThickness_ = 1.0f;
-    int numMajorDivisions_ = 5;
-    int numMinorDivisions_ = 30;
 
-    juce::AudioThumbnail &thumbnail_;
-    int channel_;
+    double majorDivisionsIntervalsSec_ = 0;
+    double minorDivisionsIntervalsSec_ = 0;
+    juce::Range<double> secRange_ {0, 0};
 
-    float majorDivisionsIntervalsSec_ = 0;
-    float minorDivisionsIntervalsSec_ = 0;
-    juce::Range<float> secRange_ {0, 0};
-    
     struct TimeStamp { juce::String text; juce::Rectangle<float> bounds; };
-    std::vector<TimeStamp> timeStamps_{20};
-    
-    YellowPlayerLookAndFeel lookAndFeel_;
+    static constexpr size_t maxTimeStamps_ = 20; // to be reserved up front to avoid reallocations
+    std::vector<TimeStamp> timeStamps_;
+
+    // Current time marker
+    juce::Path playPositionMarkerPath_;
+    double currentTime_ = 0.0;
+
+    // Graphics constants
+    const float thickLineThickness_ = 1.0f;
+    const float widthOffset_ = 5.0f; // horizontal inset for soundwaveBounds_, leaves room so edge bars/triangles aren't clipped
+    const juce::Colour linesColour_ = YellowPlayerColours::white;
+    const juce::Colour playPositionMarkerColour_ = juce::Colour(0xffff5252);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SoundWavePath)
 };
