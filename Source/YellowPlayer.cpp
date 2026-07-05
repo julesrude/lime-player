@@ -27,7 +27,13 @@ YellowPlayer::YellowPlayer()
     // Just to force to recreate text box using the custom look and feel of the parent
     topSlider_.setLookAndFeel(&lookAndFeel);
     bottomSlider_.setLookAndFeel(&lookAndFeel);
-    
+    topSlider_.onValueChange = [this]() {
+        topChannelVolume_ = topSlider_.getValue();
+    };
+    bottomSlider_.onValueChange = [this]() {
+        bottomChannelVolume_ = bottomSlider_.getValue();
+    };
+
     float buttonSize = 50.0f;
     float linesWidth = 10.0f;
 
@@ -40,7 +46,6 @@ YellowPlayer::YellowPlayer()
     addAndMakeVisible(topSoundWave_);
     addAndMakeVisible(bottomSoundWave_);
 
-    DBG("Add and make visible");
     addAndMakeVisible(pauseButton_);
     addAndMakeVisible(playButton_);
     addAndMakeVisible(plusButton_);
@@ -77,13 +82,23 @@ void YellowPlayer::prepareToPlay (int samplesPerBlockExpected, double sampleRate
 
 void YellowPlayer::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    if (!readerSource_)
-    {
+    if (transportSource_.isPlaying()) {
+
+        transportSource_.getNextAudioBlock(bufferToFill);
+
+        auto leftBuff = bufferToFill.buffer->getWritePointer(0);
+        auto rightBuff = bufferToFill.buffer->getWritePointer(1);
+        for (int smpl = 0; smpl < bufferToFill.numSamples; ++smpl) {
+            leftBuff[smpl] = leftBuff[smpl] * topChannelVolume_;
+            rightBuff[smpl] = rightBuff[smpl] * bottomChannelVolume_;
+        }
+    } else {
+
+        // There is no file yet, or it's not playing
         bufferToFill.clearActiveBufferRegion();
         return;
     }
-    
-    transportSource_.getNextAudioBlock(bufferToFill);
+
 }
 
 void YellowPlayer::releaseResources()
@@ -153,9 +168,6 @@ void YellowPlayer::changeListenerCallback (juce::ChangeBroadcaster* source)
 
 void YellowPlayer::paint (juce::Graphics& g)
 {
-    static int paint_counter = 0;
-    DBG("Repaint #" << paint_counter++);
-    
     // Background
     g.fillAll (YellowPlayerColours::black);
 

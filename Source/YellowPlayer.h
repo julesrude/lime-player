@@ -21,14 +21,14 @@ public:
     SoundLevelSlider() : juce::Slider(juce::Slider::SliderStyle::LinearBar
                      , juce::Slider::TextEntryBoxPosition::TextBoxBelow)
     {
-        setRange(0.0, 100.0);
-        setValue(50);
+        setRange(0.0, 1.0);
+        setValue(1.0);
         setTextBoxIsEditable(false);
     };
     
     juce::String getTextFromValue (double value)
     {
-        return juce::String(static_cast<int>(value)) + "%";
+        return juce::String(static_cast<int>(value * 100.0)) + "%";
     }
 };
 
@@ -92,6 +92,8 @@ private:
     SoundLevelSlider topSlider_;
     SoundLevelSlider bottomSlider_;
     float sliderHeight_ = 20.0f;
+    std::atomic<float> topChannelVolume_ = 1.0f;
+    std::atomic<float> bottomChannelVolume_ = 1.0f;
 
     juce::ShapeButton pauseButton_;
     juce::ShapeButton playButton_;
