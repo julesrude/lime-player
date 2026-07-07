@@ -81,14 +81,11 @@ void SoundWavePath::paint (juce::Graphics& g)
     g.fillPath(trianglesPath_);
 
     // Audio waveform
-    g.setOpacity(0.25f);
-    if (thumbnail_.getNumChannels() != 0) {
-        thumbnail_.drawChannel (g, soundwaveBounds_.toNearestInt(),
-                                secRange_.getStart(),               // start time
-                                secRange_.getEnd(),                 // end time
-                                channel_,
-                                0.6f);                              // vertical zoom
-    }
+    if (waveformCacheDirty_)
+        renderWaveformToCache();
+
+    if (waveformCache_.isValid())
+        g.drawImage(waveformCache_, soundwaveBounds_);
 
     // Time stamps on major bars
     g.setOpacity(0.5f);
@@ -109,10 +106,12 @@ void SoundWavePath::resized()
 {
     soundwaveBounds_ = getLocalBounds().toFloat().reduced(horisontalMargin_, 20.0f).translated(0, 10.0f);
     calculateResizedDivisions();
+    waveformCacheDirty_ = true;
 }
 
 void SoundWavePath::changeListenerCallback(juce::ChangeBroadcaster *source) {
     if (source == &thumbnail_) {
+        waveformCacheDirty_ = true;
         repaint();
     }
 }
@@ -129,6 +128,7 @@ void SoundWavePath::setNewSongLength() {
 void SoundWavePath::resetTimeBounds(const float minSec, const float maxSec) {
     secRange_.setStart(minSec);
     secRange_.setEnd(maxSec);
+    waveformCacheDirty_ = true;
 
     std::pair<juce::RelativeTime, juce::RelativeTime> intervals = majMinIntervalFromRange(secRange_.getLength());
 
@@ -298,4 +298,23 @@ double SoundWavePath::xToTime(float x) const
 
     return secRange_.getStart()
          + (x - soundwaveBounds_.getX()) / soundwaveBounds_.getWidth() * secRange_.getLength();
+}
+
+void SoundWavePath::renderWaveformToCache() { 
+    auto bounds = soundwaveBounds_.getSmallestIntegerContainer();
+
+    waveformCache_ = juce::Image(juce::Image::ARGB, bounds.getWidth(), bounds.getHeight(), true);
+
+    if (thumbnail_.getNumChannels() != 0) {
+        juce::Graphics gCache(waveformCache_);
+        gCache.setColour(linesColour_);
+        gCache.setOpacity(0.25f);
+        thumbnail_.drawChannel (gCache, {0, 0, bounds.getWidth(), bounds.getHeight()},
+                                secRange_.getStart(),   // start time
+                                secRange_.getEnd(),     // end time
+                                channel_,
+                                0.6f);                  // vertical zoom
+    }
+
+    waveformCacheDirty_ = false;
 }

@@ -50,15 +50,19 @@ public:
 
 private:
 
-    void recreatePlayPositionMarker();
-
     // Helpers, convert between a time in seconds and X within soundwaveBounds_
     float timeToX(double sec) const;
     double xToTime(float x) const;
 
+    // Waveform
     juce::Rectangle<float> soundwaveBounds_;
     juce::AudioThumbnail &thumbnail_;
     int channel_;
+
+    juce::Image waveformCache_;
+    bool waveformCacheDirty_ = true;
+
+    void renderWaveformToCache();
 
     // Vertical bars and their timestamps
     juce::Path trianglesPath_;
@@ -77,6 +81,8 @@ private:
     // Current time marker
     juce::Path playPositionMarkerPath_;
     double currentTime_ = 0.0;
+
+    void recreatePlayPositionMarker();
 
     // Graphics constants
     const float thickLineThickness_ = 1.0f;

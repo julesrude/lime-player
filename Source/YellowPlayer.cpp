@@ -120,7 +120,7 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
             transportSource_.start();
 
         case TransportState::Playing:
-            startTimer(1000 / 30); // ~30 fps for a smoothly moving playback marker
+            startTimerHz(30);
             playButton_.setEnabled(false);
             pauseButton_.setEnabled(true);
             break;
@@ -258,6 +258,23 @@ void YellowPlayer::playButtonClicked() {
 }
 
 void YellowPlayer::timerCallback() {
+    if (!isShowing())
+        return;
+
+    bool shouldRepaint = true;
+
+    if (!juce::Process::isForegroundProcess()) {
+        if (repaintWhenBackgroundCounter_ % 5 != 0)
+            shouldRepaint = false;
+
+        repaintWhenBackgroundCounter_++;
+    } else {
+        repaintWhenBackgroundCounter_ = 0;
+    }
+    
+    if (!shouldRepaint)
+        return;
+
     const double currentPosition = transportSource_.getCurrentPosition();
 
     topSoundWave_.setCurrentTime(currentPosition);

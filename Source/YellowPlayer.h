@@ -101,6 +101,8 @@ private:
 
     SoundWavePath topSoundWave_ = {thumbnail_, 0};
     SoundWavePath bottomSoundWave_ = {thumbnail_, 1};
+    
+    int repaintWhenBackgroundCounter_ = 0;
 
     const float controlsAreaHeight_ = 50.0f;
 
