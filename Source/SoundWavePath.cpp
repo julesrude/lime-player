@@ -287,9 +287,8 @@ void SoundWavePath::recreatePlayPositionMarker()
         playPositionMarkerPath_.setVisible(true);
     }
 
-    float xPos = juce::roundToInt(timeToX(currentTime_)); // whole numbers give a consistent view of the line accross positions
-
-    
+    // Round to whole numbers, since they give a consistent view of the line accross positions
+    float xPos = juce::roundToInt(timeToX(currentTime_));
     playPositionMarkerPath_.moveCentreTo(xPos);
 }
 
