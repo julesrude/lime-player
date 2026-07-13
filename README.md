@@ -8,6 +8,8 @@ It's a player, that can do simple stuff like load a song, play/pause it; visuali
 
 I am minimizing my usage of AI for this project, since my goal is to get a lot practice with JUCE.
 
+<img width="1280" height="1256" alt="Lime player gif" src="https://github.com/user-attachments/assets/2694c7e0-2e5d-4fe1-b9a6-97a6c2248b9d" />
+
 ## Plans
 
 It is super simple for now, but I have an ambition of building upon it, and try some voice separation algorythms, so that instead of left/right channels there would be ability to change the gain of voice or accompaniment. 
