@@ -82,23 +82,14 @@ void YellowPlayer::prepareToPlay (int samplesPerBlockExpected, double sampleRate
 
 void YellowPlayer::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    if (transportSource_.isPlaying()) {
+    transportSource_.getNextAudioBlock(bufferToFill);
 
-        transportSource_.getNextAudioBlock(bufferToFill);
-
-        auto leftBuff = bufferToFill.buffer->getWritePointer(0);
-        auto rightBuff = bufferToFill.buffer->getWritePointer(1);
-        for (int smpl = 0; smpl < bufferToFill.numSamples; ++smpl) {
-            leftBuff[smpl] = leftBuff[smpl] * topChannelVolume_;
-            rightBuff[smpl] = rightBuff[smpl] * bottomChannelVolume_;
-        }
-    } else {
-
-        // There is no file yet, or it's not playing
-        bufferToFill.clearActiveBufferRegion();
-        return;
+    auto leftBuff = bufferToFill.buffer->getWritePointer(0);
+    auto rightBuff = bufferToFill.buffer->getWritePointer(1);
+    for (int smpl = 0; smpl < bufferToFill.numSamples; ++smpl) {
+        leftBuff[bufferToFill.startSample + smpl] = leftBuff[bufferToFill.startSample + smpl] * topChannelVolume_;
+        rightBuff[bufferToFill.startSample + smpl] = rightBuff[bufferToFill.startSample + smpl] * bottomChannelVolume_;
     }
-
 }
 
 void YellowPlayer::releaseResources()
@@ -118,19 +109,23 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
     switch (state_) {
         case TransportState::Starting:
             transportSource_.start();
+            break;
 
         case TransportState::Playing:
-            startTimerHz(30);
+            if (!isTimerRunning())
+                startTimerHz(30);
             playButton_.setEnabled(false);
             pauseButton_.setEnabled(true);
             break;
 
         case TransportState::Pausing:
             transportSource_.stop();
+            break;
 
         case TransportState::Paused:
             playButton_.setEnabled(true);
             pauseButton_.setEnabled(false);
+            setCurrentTimeInWaveformsTo(transportSource_.getCurrentPosition());
             stopTimer();
             break;
             
@@ -139,8 +134,9 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
             pauseButton_.setEnabled(false);
             stopTimer();
             transportSource_.setPosition(0.0f);
-            topSoundWave_.setCurrentTime(0.0);
-            bottomSoundWave_.setCurrentTime(0.0);
+            setCurrentTimeInWaveformsTo(0.0);
+            if (auto* peer = getPeer())
+                peer->performAnyPendingRepaintsNow();
             break;
 
         default:
@@ -238,10 +234,9 @@ void YellowPlayer::plusButtonClicked() {
             readerSource_.reset(newSource.release());
 
             topSoundWave_.setSourceForWaveform(new juce::FileInputSource(songFile));
-            topSoundWave_.setCurrentTime(0.0);
-            topSoundWave_.repaint();
             bottomSoundWave_.setSourceForWaveform(new juce::FileInputSource(songFile));
-            bottomSoundWave_.setCurrentTime(0.0);
+            setCurrentTimeInWaveformsTo(0.0);
+            topSoundWave_.repaint();
             bottomSoundWave_.repaint();
         }
 
@@ -275,10 +270,11 @@ void YellowPlayer::timerCallback() {
     if (!shouldRepaint)
         return;
 
-    const double currentPosition = transportSource_.getCurrentPosition();
-
-    topSoundWave_.setCurrentTime(currentPosition);
-    bottomSoundWave_.setCurrentTime(currentPosition);
-
+    setCurrentTimeInWaveformsTo(transportSource_.getCurrentPosition());
     repaint();
+}
+
+void YellowPlayer::setCurrentTimeInWaveformsTo(double timeInSec) {
+    topSoundWave_.setCurrentTime(timeInSec);
+    bottomSoundWave_.setCurrentTime(timeInSec);
 }

@@ -22,7 +22,6 @@ YellowPlayerLookAndFeel::YellowPlayerLookAndFeel()
     // Other elements
     setColour(juce::Label::textColourId, YellowPlayerColours::lime);
     setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-
 }
 
 juce::Label* YellowPlayerLookAndFeel::createSliderTextBox (juce::Slider& slider)

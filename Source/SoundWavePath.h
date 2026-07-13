@@ -13,6 +13,66 @@
 #include <JuceHeader.h>
 #include "YellowPlayerLookAndFeel.h"
 
+class PlayPositionMarker : public juce::Component
+{
+public:
+    PlayPositionMarker() : juce::Component() {
+        setInterceptsMouseClicks(false, false);
+    };
+
+    virtual void paint (juce::Graphics& g) override {
+        g.setFillType(fill_);
+        g.fillPath(path_);
+    }
+
+    void setPath (const juce::Path &p) {
+        path_.clear();
+        path_ = p;
+    }
+
+    void moveCentreTo (const int x) {
+        markerPosX_ = juce::jlimit(horisontalMargin_,
+                                   getWidth() - horisontalMargin_,
+                                   x + (int)positionOffset_);
+
+        juce::Path path;
+        const float top = 0;
+
+        // Draw vertical line
+        path.addRectangle(juce::Rectangle<float>(markerThickness_, getHeight())
+                          .withCentre({(float)markerPosX_, top + getHeight() / 2.0f}));
+
+        // Draw triangle at the top of the vertical line (same style as major divisions)
+        path.addTriangle(
+                         markerPosX_,                 top + triangleSize_,
+                         markerPosX_ - triangleSize_, top,
+                         markerPosX_ + triangleSize_, top
+                         );
+
+        setPath(path);
+        
+        repaint();
+    }
+
+    void registerOffset(const float offset) { positionOffset_ = offset; }
+
+    float getCentreX() { return markerPosX_; }
+    
+    void setFill(const juce::FillType & f) { fill_ = f; }
+    
+    void setHorisontalMargin(const int margin) { horisontalMargin_ = margin; }
+
+private:
+    juce::Path path_;
+    juce::FillType fill_;
+    int markerPosX_ = 0;
+    int positionOffset_ = 0; // for click and drag, when click happened near the marker
+    int horisontalMargin_ = 0;
+
+    float triangleSize_ = 4.0f;
+    float markerThickness_ = 2.0f;
+};
+
 //==============================================================================
 /*
 */
@@ -48,6 +108,16 @@ public:
     // Set the current playback position in seconds
     void setCurrentTime(double timeInSeconds);
 
+    bool hitTest(int x, int y) override {
+        return true; // whole component bounds are clickable
+    }
+
+    std::function<void(const juce::MouseEvent &)> onClick;
+    void mouseDown (const juce::MouseEvent &event) override;
+    
+    std::function<void(const juce::MouseEvent &)> onDrag;
+    void mouseDrag (const juce::MouseEvent &event) override;
+
 private:
 
     // Helpers, convert between a time in seconds and X within soundwaveBounds_
@@ -79,7 +149,7 @@ private:
     std::vector<TimeStamp> timeStamps_;
 
     // Current time marker
-    juce::Path playPositionMarkerPath_;
+    PlayPositionMarker playPositionMarkerPath_;
     double currentTime_ = 0.0;
 
     void recreatePlayPositionMarker();
@@ -90,6 +160,8 @@ private:
     const float verticalMargin_ = 20.0f;
     const juce::Colour linesColour_ = YellowPlayerColours::white;
     const juce::Colour playPositionMarkerColour_ = juce::Colour(0xffff5252);
+    
+    juce::Point<float> initialClickPosition_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SoundWavePath)
 };

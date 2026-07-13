@@ -59,8 +59,33 @@ SoundWavePath::SoundWavePath(juce::AudioThumbnail &thumbnail, const int channel)
     : thumbnail_(thumbnail),
       channel_(channel)
 {
+    setInterceptsMouseClicks(true, false);
+
     timeStamps_.reserve(maxTimeStamps_);
     thumbnail_.addChangeListener(this);
+
+    addAndMakeVisible(playPositionMarkerPath_);
+    playPositionMarkerPath_.setFill({playPositionMarkerColour_});
+
+    onClick = [this](const juce::MouseEvent &event) {
+        if (thumbnail_.getNumChannels() == 0)
+            return;
+
+        if (event.position.getX() < playPositionMarkerPath_.getCentreX() - 10 ||
+            event.position.getX() > playPositionMarkerPath_.getCentreX() + 10) {
+            playPositionMarkerPath_.registerOffset(0.0f);
+            playPositionMarkerPath_.moveCentreTo(event.position.getX());
+        } else {
+            playPositionMarkerPath_.registerOffset(playPositionMarkerPath_.getCentreX() - event.position.getX());
+        }
+    };
+    
+    onDrag = [this](const juce::MouseEvent &event) {
+        if (thumbnail_.getNumChannels() == 0)
+            return;
+
+        playPositionMarkerPath_.moveCentreTo(event.position.getX());
+    };
 }
 
 SoundWavePath::~SoundWavePath()
@@ -93,18 +118,13 @@ void SoundWavePath::paint (juce::Graphics& g)
     for (auto &timePoint : timeStamps_) {
         g.drawText(timePoint.text, timePoint.bounds, juce::Justification::centred);
     }
-
-    // Draw current time marker if it's in the visible window
-    if (currentTime_ >= secRange_.getStart() && currentTime_ <= secRange_.getEnd())
-    {
-        g.setColour(playPositionMarkerColour_);
-        g.fillPath(playPositionMarkerPath_);
-    }
 }
 
 void SoundWavePath::resized()
 {
     soundwaveBounds_ = getLocalBounds().toFloat().reduced(horisontalMargin_, 20.0f).translated(0, 10.0f);
+    playPositionMarkerPath_.setBounds(getLocalBounds().reduced(0, 20).translated(0, 10));
+    playPositionMarkerPath_.setHorisontalMargin(horisontalMargin_);
     calculateResizedDivisions();
     waveformCacheDirty_ = true;
 }
@@ -259,25 +279,18 @@ void SoundWavePath::setCurrentTime(double timeInSeconds)
 
 void SoundWavePath::recreatePlayPositionMarker()
 {
-    playPositionMarkerPath_.clear();
-
     // Nothing to draw if the current time is outside the visible range
-    if (currentTime_ < secRange_.getStart() || currentTime_ > secRange_.getEnd())
+    if (currentTime_ < secRange_.getStart() || currentTime_ > secRange_.getEnd()) {
+        playPositionMarkerPath_.setVisible(false);
         return;
+    } else {
+        playPositionMarkerPath_.setVisible(true);
+    }
 
     float xPos = juce::roundToInt(timeToX(currentTime_)); // whole numbers give a consistent view of the line accross positions
 
-    // Draw vertical line
-    playPositionMarkerPath_.addRectangle(juce::Rectangle<float>(thickLineThickness_, soundwaveBounds_.getHeight())
-                                        .withCentre({xPos, soundwaveBounds_.getCentreY()}));
     
-    // Draw triangle at the top of the vertical line (same style as major divisions)
-    float triangleTop = soundwaveBounds_.getY();
-    playPositionMarkerPath_.addTriangle(
-                                       xPos, triangleTop + triangleSize_,
-                                       xPos - triangleSize_, triangleTop,
-                                       xPos + triangleSize_, triangleTop
-                                       );
+    playPositionMarkerPath_.moveCentreTo(xPos);
 }
 
 float SoundWavePath::timeToX(double sec) const
@@ -317,4 +330,17 @@ void SoundWavePath::renderWaveformToCache() {
     }
 
     waveformCacheDirty_ = false;
+}
+
+void SoundWavePath::mouseDown (const juce::MouseEvent &event) {
+   initialClickPosition_ = event.position;
+
+   if (soundwaveBounds_.contains(event.position) && onClick) {
+       onClick(event);
+   }
+}
+
+void SoundWavePath::mouseDrag (const juce::MouseEvent &event) {
+   if (soundwaveBounds_.contains(initialClickPosition_) && onDrag)
+       onDrag(event);
 }
