@@ -112,11 +112,19 @@ public:
         return true; // whole component bounds are clickable
     }
 
+    bool isDragging() const { return isDragging_; }
+
     std::function<void(const juce::MouseEvent &)> onClick;
     void mouseDown (const juce::MouseEvent &event) override;
     
     std::function<void(const juce::MouseEvent &)> onDrag;
     void mouseDrag (const juce::MouseEvent &event) override;
+
+    std::function<void(const juce::MouseEvent &)> onMouseUp;
+    void mouseUp (const juce::MouseEvent& event) override;
+
+    // Called on mouse-up with the seek time in seconds, after the marker has been placed
+    std::function<void(double)> onSeekRequested;
 
 private:
 
@@ -151,6 +159,7 @@ private:
     // Current time marker
     PlayPositionMarker playPositionMarkerPath_;
     double currentTime_ = 0.0;
+    bool isDragging_ = false;
 
     void recreatePlayPositionMarker();
 

@@ -59,6 +59,13 @@ YellowPlayer::YellowPlayer()
         bottomSoundWave_.resetTimeBounds(range.getStart(), range.getEnd());
     };
 
+    auto onSeek = [this](double time) {
+        transportSource_.setPosition(time);
+        setCurrentTimeInBothWaveforms(time);
+    };
+    topSoundWave_.onSeekRequested = onSeek;
+    bottomSoundWave_.onSeekRequested = onSeek;
+
     plusButton_.onClick = [this]{ plusButtonClicked(); };
     playButton_.onClick = [this]{ playButtonClicked(); };
     pauseButton_.onClick = [this]{ pauseButtonClicked(); };
@@ -66,7 +73,7 @@ YellowPlayer::YellowPlayer()
     playButton_.setEnabled(false);
     pauseButton_.setEnabled(false);
 
-    setSize(600, 600);
+    setSize(800, 800);
 }
 
 YellowPlayer::~YellowPlayer()
@@ -125,7 +132,7 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
         case TransportState::Paused:
             playButton_.setEnabled(true);
             pauseButton_.setEnabled(false);
-            setCurrentTimeInWaveformsTo(transportSource_.getCurrentPosition());
+            setCurrentTimeInBothWaveforms(transportSource_.getCurrentPosition());
             stopTimer();
             break;
             
@@ -134,7 +141,7 @@ void YellowPlayer::changeAndHandleState(TransportState newState)
             pauseButton_.setEnabled(false);
             stopTimer();
             transportSource_.setPosition(0.0f);
-            setCurrentTimeInWaveformsTo(0.0);
+            setCurrentTimeInBothWaveforms(0.0);
             if (auto* peer = getPeer())
                 peer->performAnyPendingRepaintsNow();
             break;
@@ -235,7 +242,7 @@ void YellowPlayer::plusButtonClicked() {
 
             topSoundWave_.setSourceForWaveform(new juce::FileInputSource(songFile));
             bottomSoundWave_.setSourceForWaveform(new juce::FileInputSource(songFile));
-            setCurrentTimeInWaveformsTo(0.0);
+            setCurrentTimeInBothWaveforms(0.0);
             topSoundWave_.repaint();
             bottomSoundWave_.repaint();
         }
@@ -270,11 +277,16 @@ void YellowPlayer::timerCallback() {
     if (!shouldRepaint)
         return;
 
-    setCurrentTimeInWaveformsTo(transportSource_.getCurrentPosition());
+    const double pos = transportSource_.getCurrentPosition();
+    if (!topSoundWave_.isDragging())
+        topSoundWave_.setCurrentTime(pos);
+    if (!bottomSoundWave_.isDragging())
+        bottomSoundWave_.setCurrentTime(pos);
+
     repaint();
 }
 
-void YellowPlayer::setCurrentTimeInWaveformsTo(double timeInSec) {
+void YellowPlayer::setCurrentTimeInBothWaveforms(double timeInSec) {
     topSoundWave_.setCurrentTime(timeInSec);
     bottomSoundWave_.setCurrentTime(timeInSec);
 }

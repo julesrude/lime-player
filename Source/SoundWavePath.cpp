@@ -334,12 +334,26 @@ void SoundWavePath::renderWaveformToCache() {
 void SoundWavePath::mouseDown (const juce::MouseEvent &event) {
    initialClickPosition_ = event.position;
 
-   if (soundwaveBounds_.contains(event.position) && onClick) {
-       onClick(event);
+   if (soundwaveBounds_.contains(event.position)) {
+       isDragging_ = true;
+       playPositionMarkerPath_.setFill({playPositionMarkerColour_.withAlpha(0.5f)});
+       if (onClick)
+           onClick(event);
    }
 }
 
 void SoundWavePath::mouseDrag (const juce::MouseEvent &event) {
    if (soundwaveBounds_.contains(initialClickPosition_) && onDrag)
        onDrag(event);
+}
+
+void SoundWavePath::mouseUp (const juce::MouseEvent& event) {
+    isDragging_ = false;
+    playPositionMarkerPath_.setFill({playPositionMarkerColour_});
+
+    if (thumbnail_.getNumChannels() == 0)
+        return;
+
+    if (soundwaveBounds_.contains(initialClickPosition_) && onSeekRequested)
+        onSeekRequested(xToTime(playPositionMarkerPath_.getCentreX()));
 }

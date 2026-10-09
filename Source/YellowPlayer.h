@@ -65,7 +65,7 @@ public:
 private:
     void changeAndHandleState(TransportState newState);
     
-    void setCurrentTimeInWaveformsTo(double timeInSec);
+    void setCurrentTimeInBothWaveforms(double timeInSec);
 
     void plusButtonClicked();
     void playButtonClicked();
