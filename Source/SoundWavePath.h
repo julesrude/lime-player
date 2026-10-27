@@ -12,47 +12,19 @@
 
 #include <JuceHeader.h>
 #include "YellowPlayerLookAndFeel.h"
+#include "Utils.h"
 
 class PlayPositionMarker : public juce::Component
 {
 public:
-    PlayPositionMarker() : juce::Component() {
-        setInterceptsMouseClicks(false, false);
-    };
+    PlayPositionMarker();
 
-    virtual void paint (juce::Graphics& g) override {
-        g.setFillType(fill_);
-        g.fillPath(path_);
-    }
+    void paint (juce::Graphics& g) override;
 
-    void setPath (const juce::Path &p) {
-        path_.clear();
-        path_ = p;
-    }
+    void setPath (const juce::Path &p);
 
-    void moveCentreTo (const int x) {
-        markerPosX_ = juce::jlimit(horisontalMargin_,
-                                   getWidth() - horisontalMargin_,
-                                   x + (int)positionOffset_);
-
-        juce::Path path;
-        const float top = 0;
-
-        // Draw vertical line
-        path.addRectangle(juce::Rectangle<float>(markerThickness_, getHeight())
-                          .withCentre({(float)markerPosX_, top + getHeight() / 2.0f}));
-
-        // Draw triangle at the top of the vertical line (same style as major divisions)
-        path.addTriangle(
-                         markerPosX_,                 top + triangleSize_,
-                         markerPosX_ - triangleSize_, top,
-                         markerPosX_ + triangleSize_, top
-                         );
-
-        setPath(path);
-        
-        repaint();
-    }
+    // x is in this marker's bounds coordinates
+    void moveCentreTo (const int x);
 
     void registerOffset(const float offset) { positionOffset_ = offset; }
 
@@ -68,9 +40,6 @@ private:
     int markerPosX_ = 0;
     int positionOffset_ = 0; // for click and drag, when click happened near the marker
     int horisontalMargin_ = 0;
-
-    float triangleSize_ = 4.0f;
-    float markerThickness_ = 2.0f;
 };
 
 //==============================================================================
@@ -84,6 +53,9 @@ public:
     ~SoundWavePath() override;
 
     void paint (juce::Graphics&) override;
+   #if YELLOWPLAYER_SHOW_BOUNDS
+    void paintOverChildren (juce::Graphics&) override;
+   #endif
     void resized() override;
 
     // - RESIZING: -
@@ -113,6 +85,11 @@ public:
     }
 
     bool isDragging() const { return isDragging_; }
+
+
+    // Extra space on top of the waveform area for components in a non-compact view
+    // (e.g. for a channel label drawn by the parent). No resized()/repaint() here
+    void setExtraTopMargin(float margin) { extraTopMargin_ = margin; }
 
     std::function<void(const juce::MouseEvent &)> onClick;
     void mouseDown (const juce::MouseEvent &event) override;
@@ -146,7 +123,6 @@ private:
     juce::Path trianglesPath_;
     juce::Path majorBarsPath_;
     juce::Path minorBarsPath_;
-    float triangleSize_ = 4.0f;
 
     double majorDivisionsIntervalsSec_ = 0;
     double minorDivisionsIntervalsSec_ = 0;
@@ -163,13 +139,8 @@ private:
 
     void recreatePlayPositionMarker();
 
-    // Graphics constants
-    const float thickLineThickness_ = 1.0f;
-    const float horisontalMargin_ = 15.0f; // leaves room so time stamps and triangles aren't clipped
-    const float verticalMargin_ = 20.0f;
-    const juce::Colour linesColour_ = YellowPlayerColours::white;
-    const juce::Colour playPositionMarkerColour_ = juce::Colour(0xffff5252);
-    
+    float extraTopMargin_ = 0.0f; // set by the parent, see setExtraTopMargin()
+
     juce::Point<float> initialClickPosition_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SoundWavePath)

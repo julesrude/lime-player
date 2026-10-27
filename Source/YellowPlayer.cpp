@@ -11,6 +11,34 @@
 #include <JuceHeader.h>
 #include "YellowPlayer.h"
 
+namespace {
+// Layout and styling values, in pixels
+namespace Layout {
+    constexpr int compactHeightLimit = 650;             // the window is compact when it's this high or less
+
+    constexpr float windowMargin = 20.0f;               // between window edge and the central area
+    constexpr float controlsAreaHeight = 50.0f;         // bottom strip with the clock and the buttons
+
+    constexpr float playerAreaCornerRadius = 20.0f;     // the big central rounded rectangle
+    constexpr float innerPanelCornerInset = 5.0f;       // inner panels are less round than the area around them
+    constexpr float innerPanelCornerRadius = playerAreaCornerRadius - innerPanelCornerInset;
+
+    constexpr float playerHorizontalInset = 10.0f;      // between the central area edge and each wave panel
+    constexpr float playerVerticalInset = 7.5f;         // between the top/bottom edges of a half and its wave panel
+    constexpr float playerVerticalNudge = 2.5f;         // pushes the wave panels apart (top moves down, bottom up)
+
+    constexpr float sliderHorizontalInset = 10.0f;      // between the wave panel edge and the volume slider
+    constexpr float sliderHeight = 20.0f;               // normal slider (with the percentage text)
+    constexpr float sliderHeightCompact = 5.0f;         // thin line slider
+    constexpr float sliderBottomMargin = 15.0f;         // between the slider and the bottom of its wave panel
+    constexpr float sliderBottomMarginCompact = 10.0f;
+
+    constexpr float channelLabelAreaHeight = 30.0f;     // strip on top of each wave panel with the channel label
+    constexpr float channelLabelExtraTopMargin = 5.0f; // extra room above the waveform for the channel label
+    constexpr float waveExtraTopMarginCompact = 10.0f;  // room above the time stamps when there are no channel labels
+}
+}
+
 //==============================================================================
 YellowPlayer::YellowPlayer()
     : state_(TransportState::Paused)
@@ -176,12 +204,12 @@ void YellowPlayer::paint (juce::Graphics& g)
 
     // Central component
     g.setColour (YellowPlayerColours::darkGrey);
-    g.fillRoundedRectangle(playerArea_, 20.0f);
+    g.fillRoundedRectangle(playerArea_, Layout::playerAreaCornerRadius);
 
     // Player components
     g.setColour(YellowPlayerColours::black.brighter());
-    g.fillRoundedRectangle(topPlayerArea_, 20.0f - 5.0f);
-    g.fillRoundedRectangle(bottomPlayerArea_, 20.0f - 5.0f);
+    g.fillRoundedRectangle(topPlayerArea_, Layout::innerPanelCornerRadius);
+    g.fillRoundedRectangle(bottomPlayerArea_, Layout::innerPanelCornerRadius);
 
     // Time
     auto clockAreaDrawingBounds = timeArea_.reduced(2.0f);
@@ -189,40 +217,102 @@ void YellowPlayer::paint (juce::Graphics& g)
 
     juce::RelativeTime currentTime(transportSource_.getCurrentPosition());
     juce::String timeString = juce::String (juce::String((int)currentTime.inMinutes()).paddedLeft('0', 2) + ":" + (juce::String((int)currentTime.inSeconds() % 60)).paddedLeft('0', 2));
-    auto clockFont = YellowPlayerLookAndFeel::getHelveticaForHeight(controlsAreaHeight_);
+    auto clockFont = YellowPlayerLookAndFeel::getHelveticaForHeight(Layout::controlsAreaHeight);
     g.setFont(clockFont);
     g.drawSingleLineText (timeString, clockAreaDrawingBounds.getX(), clockAreaDrawingBounds.getBottom());
+
+    // Channel labels (top wave is the left channel, bottom is the right one)
+    if (!compact_) {
+        paintChannelLabel(g, topLabelArea_, "Left channel");
+        paintChannelLabel(g, bottomLabelArea_, "Right channel");
+    }
+}
+
+#if YELLOWPLAYER_SHOW_BOUNDS
+// Thin red outlines of every area and child component
+void YellowPlayer::paintOverChildren(juce::Graphics& g)
+{
+    g.setColour(juce::Colours::red);
+
+    for (const auto& area : { centralArea_, controlsArea_, playerArea_, underPlayersArea_,
+                              topPlayerArea_, bottomPlayerArea_, topLabelArea_, bottomLabelArea_, timeArea_ })
+        g.drawRect(area, 1.0f);
+
+    for (auto* child : getChildren())
+        g.drawRect(child->getBounds().toFloat(), 1.0f);
+}
+#endif
+
+void YellowPlayer::paintChannelLabel(juce::Graphics& g, const juce::Rectangle<float>& labelArea, const juce::String& text)
+{
+    constexpr float iconSize = 17.0f;
+    constexpr float iconGap = 7.0f;
+
+    // Icon and text inside a rounded rectangle start one corner radius away from its left edge
+    auto area = labelArea.withTrimmedLeft(Layout::innerPanelCornerRadius + YellowPlayerStyle::triangleSize);
+    g.setColour(YellowPlayerColours::lime);
+
+    // Speaker icon sits at the bottom of the label area, like the text.
+    // The black PNG is used as a mask, so it gets painted with the current (lime) colour
+    auto iconBounds = area.removeFromLeft(iconSize).withTop(area.getBottom() - iconSize);
+    {
+        juce::Graphics::ScopedSaveState state(g);
+        g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
+        g.drawImage(speakerIcon_, iconBounds, juce::RectanglePlacement::stretchToFit, true);
+    }
+
+    area.removeFromLeft(iconGap);
+    g.setFont(YellowPlayerLookAndFeel::getHelveticaForHeight(10.0f).withStyle("Bold"));
+    g.drawText(text, area, juce::Justification::bottomLeft);
 }
 
 void YellowPlayer::resized()
 {
     // Big areas
-    centralArea_ = getLocalBounds().toFloat().reduced(10.f);
+    centralArea_ = getLocalBounds().toFloat().reduced(Layout::windowMargin);
+
+    // Small window: volume sliders become thin lines without numbers
+    compact_ = getHeight() <= Layout::compactHeightLimit;
+    sliderHeight_ = compact_ ? Layout::sliderHeightCompact : Layout::sliderHeight;
+    topSlider_.setCompact(compact_);
+    bottomSlider_.setCompact(compact_);
+
+    const float sliderBottomMargin = compact_ ? Layout::sliderBottomMarginCompact : Layout::sliderBottomMargin;
 
     // [ the order of these is important
     auto centralAreaCopy = centralArea_;
-    controlsArea_ = centralAreaCopy.removeFromBottom(controlsAreaHeight_);  // bottom 10% in original size
-    underPlayersArea_ = centralAreaCopy.removeFromBottom(controlsAreaHeight_);
+    controlsArea_ = centralAreaCopy.removeFromBottom(Layout::controlsAreaHeight);  // bottom 10% in original size
+    underPlayersArea_ = centralAreaCopy.removeFromBottom(Layout::controlsAreaHeight);
     playerArea_ = centralAreaCopy;  // all area - controlsArea - underPlayersArea
 
     // Player area components
-    topPlayerArea_ = centralAreaCopy.removeFromTop(playerArea_.getHeight() / 2).reduced(10, 7.5f).translated(0, 2.5f);
-    bottomPlayerArea_ = centralAreaCopy.removeFromTop(playerArea_.getHeight() / 2).reduced(10, 7.5f).translated(0, -2.5f);
+    topPlayerArea_ = centralAreaCopy.removeFromTop(playerArea_.getHeight() / 2).reduced(Layout::playerHorizontalInset, Layout::playerVerticalInset).translated(0, Layout::playerVerticalNudge);
+    bottomPlayerArea_ = centralAreaCopy.removeFromTop(playerArea_.getHeight() / 2).reduced(Layout::playerHorizontalInset, Layout::playerVerticalInset).translated(0, -Layout::playerVerticalNudge);
     // closing the area cutting sequence ]
 
-    topSlider_.setBounds(topPlayerArea_.withHeight(sliderHeight_).withBottomY(topPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
-    bottomSlider_.setBounds(bottomPlayerArea_.withHeight(sliderHeight_).withBottomY(bottomPlayerArea_.getBottom() - 15).reduced(10, 0).toNearestInt());
+    topSlider_.setBounds(topPlayerArea_.withHeight(sliderHeight_).withBottomY(topPlayerArea_.getBottom() - sliderBottomMargin).reduced(Layout::sliderHorizontalInset, 0).toNearestInt());
+    bottomSlider_.setBounds(bottomPlayerArea_.withHeight(sliderHeight_).withBottomY(bottomPlayerArea_.getBottom() - sliderBottomMargin).reduced(Layout::sliderHorizontalInset, 0).toNearestInt());
 
-    topSoundWave_.setBounds(topPlayerArea_.getX(), topPlayerArea_.getY(), topPlayerArea_.getWidth(), topSlider_.getY() - topPlayerArea_.getY());
-    bottomSoundWave_.setBounds(bottomPlayerArea_.getX(), bottomPlayerArea_.getY(), bottomPlayerArea_.getWidth(), bottomSlider_.getY() - bottomPlayerArea_.getY());
+    // No channel labels in compact mode, so the label areas take no space
+    const float labelAreaHeight = compact_ ? 0.0f : Layout::channelLabelAreaHeight;
+    topLabelArea_.setBounds(topPlayerArea_.getX(), topPlayerArea_.getY(), topPlayerArea_.getWidth(), labelAreaHeight);
+    bottomLabelArea_.setBounds(bottomPlayerArea_.getX(), bottomPlayerArea_.getY(), bottomPlayerArea_.getWidth(), labelAreaHeight);
+
+    // Must be set before the waves' setBounds()
+    const float waveExtraTopMargin = compact_ ? Layout::waveExtraTopMarginCompact : Layout::channelLabelExtraTopMargin;
+    topSoundWave_.setExtraTopMargin(waveExtraTopMargin);
+    bottomSoundWave_.setExtraTopMargin(waveExtraTopMargin);
+
+    topSoundWave_.setBounds(topLabelArea_.getX(), topLabelArea_.getBottom(), topLabelArea_.getWidth(), topSlider_.getY() - topLabelArea_.getBottom());
+    bottomSoundWave_.setBounds(bottomLabelArea_.getX(), bottomLabelArea_.getBottom(), bottomLabelArea_.getWidth(), bottomSlider_.getY() - bottomLabelArea_.getBottom());
 
     // Controls area components
     auto controlsAreaCopy = controlsArea_;
     timeArea_ = controlsAreaCopy.removeFromLeft(controlsArea_.getWidth() / 2.0f);
 
-    pauseButton_.setBounds(controlsArea_.withLeft(controlsArea_.getCentreX()).withRight(controlsArea_.getCentreX() + controlsAreaHeight_).toNearestInt());
-    playButton_.setBounds(controlsArea_.withLeft(controlsArea_.getCentreX() + controlsAreaHeight_).withRight(controlsArea_.getCentreX() + controlsAreaHeight_ * 2).toNearestInt());
-    plusButton_.setBounds(controlsArea_.withLeft(controlsArea_.getRight() - controlsAreaHeight_).toNearestInt());
+    pauseButton_.setBounds(controlsArea_.withLeft(controlsArea_.getCentreX()).withRight(controlsArea_.getCentreX() + Layout::controlsAreaHeight).toNearestInt());
+    playButton_.setBounds(controlsArea_.withLeft(controlsArea_.getCentreX() + Layout::controlsAreaHeight).withRight(controlsArea_.getCentreX() + Layout::controlsAreaHeight * 2).toNearestInt());
+    plusButton_.setBounds(controlsArea_.withLeft(controlsArea_.getRight() - Layout::controlsAreaHeight).toNearestInt());
 }
 
 void YellowPlayer::plusButtonClicked() { 
