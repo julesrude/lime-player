@@ -12,6 +12,19 @@
 #include "SoundWavePath.h"
 
 namespace {
+// Layout and styling values, in pixels
+namespace Layout {
+    constexpr float horisontalMargin = 20.0f;   // leaves room so time stamps and triangles aren't clipped on the sides
+    constexpr float topMargin = 18.0f;          // above the waveform area, leaving space for time stamps
+    constexpr float bottomMargin = 10.0f;
+    constexpr float thickLineThickness = 1.0f;  // major bars
+
+    constexpr float markerThickness = 2.0f;
+    constexpr int markerSidePadding = static_cast<int>(YellowPlayerStyle::triangleSize); // room for the marker's triangle on the sides
+
+    const juce::Colour linesColour = YellowPlayerColours::white;
+}
+
 // The way these are used is, for the range that is above [i],
 // the major bars interval is 1 step below ([i+1]), the minor bars interval is 3 steps below ([i+3])
 const std::vector<juce::RelativeTime> zoomingTimeIntervals {
@@ -55,6 +68,46 @@ void foreachVerticalBar(const juce::Rectangle<float> drawingBounds,
 }
 
 //==============================================================================
+PlayPositionMarker::PlayPositionMarker() : juce::Component() {
+    setInterceptsMouseClicks(false, false);
+}
+
+void PlayPositionMarker::paint (juce::Graphics& g) {
+    g.setFillType(fill_);
+    g.fillPath(path_);
+}
+
+void PlayPositionMarker::setPath (const juce::Path &p) {
+    path_.clear();
+    path_ = p;
+}
+
+void PlayPositionMarker::moveCentreTo (const int x) {
+    markerPosX_ = juce::jlimit(horisontalMargin_,
+                               getWidth() - horisontalMargin_,
+                               x + (int)positionOffset_);
+
+    juce::Path path;
+    const float top = 0;
+    const float triangleSize = YellowPlayerStyle::triangleSize;
+
+    // Draw vertical line
+    path.addRectangle(juce::Rectangle<float>(Layout::markerThickness, getHeight())
+                      .withCentre({(float)markerPosX_, top + getHeight() / 2.0f}));
+
+    // Draw triangle at the top of the vertical line (same style as major divisions)
+    path.addTriangle(
+                     markerPosX_,                top + triangleSize,
+                     markerPosX_ - triangleSize, top,
+                     markerPosX_ + triangleSize, top
+                     );
+
+    setPath(path);
+    
+    repaint();
+}
+
+//==============================================================================
 SoundWavePath::SoundWavePath(juce::AudioThumbnail &thumbnail, const int channel)
     : thumbnail_(thumbnail),
       channel_(channel)
@@ -65,18 +118,21 @@ SoundWavePath::SoundWavePath(juce::AudioThumbnail &thumbnail, const int channel)
     thumbnail_.addChangeListener(this);
 
     addAndMakeVisible(playPositionMarkerPath_);
-    playPositionMarkerPath_.setFill({playPositionMarkerColour_});
+    playPositionMarkerPath_.setFill({YellowPlayerColours::playPositionMarker});
 
     onClick = [this](const juce::MouseEvent &event) {
         if (thumbnail_.getNumChannels() == 0)
             return;
 
-        if (event.position.getX() < playPositionMarkerPath_.getCentreX() - 10 ||
-            event.position.getX() > playPositionMarkerPath_.getCentreX() + 10) {
+        // Work in the marker's own coordinates
+        const float x = event.getEventRelativeTo(&playPositionMarkerPath_).position.getX();
+
+        if (x < playPositionMarkerPath_.getCentreX() - 10 ||
+            x > playPositionMarkerPath_.getCentreX() + 10) {
             playPositionMarkerPath_.registerOffset(0.0f);
-            playPositionMarkerPath_.moveCentreTo(event.position.getX());
+            playPositionMarkerPath_.moveCentreTo(x);
         } else {
-            playPositionMarkerPath_.registerOffset(playPositionMarkerPath_.getCentreX() - event.position.getX());
+            playPositionMarkerPath_.registerOffset(playPositionMarkerPath_.getCentreX() - x);
         }
     };
     
@@ -84,7 +140,7 @@ SoundWavePath::SoundWavePath(juce::AudioThumbnail &thumbnail, const int channel)
         if (thumbnail_.getNumChannels() == 0)
             return;
 
-        playPositionMarkerPath_.moveCentreTo(event.position.getX());
+        playPositionMarkerPath_.moveCentreTo(event.getEventRelativeTo(&playPositionMarkerPath_).position.getX());
     };
 }
 
@@ -94,7 +150,7 @@ SoundWavePath::~SoundWavePath()
 
 void SoundWavePath::paint (juce::Graphics& g)
 {
-    g.setColour (linesColour_);
+    g.setColour (Layout::linesColour);
 
     g.drawHorizontalLine(soundwaveBounds_.getCentreY(), soundwaveBounds_.getX(), soundwaveBounds_.getRight());
     
@@ -120,11 +176,27 @@ void SoundWavePath::paint (juce::Graphics& g)
     }
 }
 
+#if YELLOWPLAYER_SHOW_BOUNDS
+// Outlines of the component bounds, waveform bounds and play marker bounds
+void SoundWavePath::paintOverChildren(juce::Graphics& g)
+{
+    g.setColour(juce::Colours::red);
+    g.drawRect(getLocalBounds().toFloat(), 1.0f);
+    g.drawRect(soundwaveBounds_, 1.0f);
+    g.drawRect(playPositionMarkerPath_.getBounds().toFloat(), 1.0f);
+}
+#endif
+
 void SoundWavePath::resized()
 {
-    soundwaveBounds_ = getLocalBounds().toFloat().reduced(horisontalMargin_, 20.0f).translated(0, 10.0f);
-    playPositionMarkerPath_.setBounds(getLocalBounds().reduced(0, 20).translated(0, 10));
-    playPositionMarkerPath_.setHorisontalMargin(horisontalMargin_);
+    soundwaveBounds_ = juce::Rectangle<float>::leftTopRightBottom(getLocalBounds().toFloat().getX() + Layout::horisontalMargin,
+                                                                  getLocalBounds().toFloat().getY() + Layout::topMargin + extraTopMargin_,
+                                                                  getLocalBounds().toFloat().getRight() - Layout::horisontalMargin,
+                                                                  getLocalBounds().toFloat().getBottom() - Layout::bottomMargin);
+    // The marker covers the waveform area, plus room on the sides so its triangle isn't clipped at the
+    // timeline ends. Its horisontal margin equals that room, so the marker stops exactly at the timeline ends.
+    playPositionMarkerPath_.setBounds(soundwaveBounds_.expanded(Layout::markerSidePadding, 0).toNearestInt());
+    playPositionMarkerPath_.setHorisontalMargin(Layout::markerSidePadding);
     calculateResizedDivisions();
     waveformCacheDirty_ = true;
 }
@@ -217,11 +289,12 @@ void SoundWavePath::calculateResizedDivisions() {
 
         timeStamps_.push_back(timeStamp);
 
-        trianglesPath_.addTriangle({x - triangleSize_, soundwaveBounds_.getY()},                    // left-top
-                                   {x,                soundwaveBounds_.getY() + triangleSize_},   // center
-                                   {x + triangleSize_, soundwaveBounds_.getY()});                 // right-top
+        const float triangleSize = YellowPlayerStyle::triangleSize;
+        trianglesPath_.addTriangle({x - triangleSize, soundwaveBounds_.getY()},                   // left-top
+                                   {x,                soundwaveBounds_.getY() + triangleSize},    // center
+                                   {x + triangleSize, soundwaveBounds_.getY()});                  // right-top
 
-        majorBarsPath_.addRectangle(juce::Rectangle<float>(thickLineThickness_, soundwaveBounds_.getHeight())
+        majorBarsPath_.addRectangle(juce::Rectangle<float>(Layout::thickLineThickness, soundwaveBounds_.getHeight())
                                     .withCentre({x, soundwaveBounds_.getCentreY()}));
 
     });
@@ -288,8 +361,8 @@ void SoundWavePath::recreatePlayPositionMarker()
     }
 
     // Round to whole numbers, since they give a consistent view of the line accross positions
-    float xPos = juce::roundToInt(timeToX(currentTime_));
-    playPositionMarkerPath_.moveCentreTo(xPos);
+    const auto markerPos = playPositionMarkerPath_.getLocalPoint(this, juce::Point<float>(timeToX(currentTime_), 0.0f));
+    playPositionMarkerPath_.moveCentreTo(juce::roundToInt(markerPos.getX()));
 }
 
 float SoundWavePath::timeToX(double sec) const
@@ -319,7 +392,7 @@ void SoundWavePath::renderWaveformToCache() {
 
     if (thumbnail_.getNumChannels() != 0) {
         juce::Graphics gCache(waveformCache_);
-        gCache.setColour(linesColour_);
+        gCache.setColour(Layout::linesColour);
         gCache.setOpacity(0.25f);
         thumbnail_.drawChannel (gCache, {0, 0, bounds.getWidth(), bounds.getHeight()},
                                 secRange_.getStart(),   // start time
@@ -336,7 +409,7 @@ void SoundWavePath::mouseDown (const juce::MouseEvent &event) {
 
    if (soundwaveBounds_.contains(event.position)) {
        isDragging_ = true;
-       playPositionMarkerPath_.setFill({playPositionMarkerColour_.withAlpha(0.5f)});
+       playPositionMarkerPath_.setFill({YellowPlayerColours::playPositionMarker.withAlpha(0.5f)});
        if (onClick)
            onClick(event);
    }
@@ -349,11 +422,13 @@ void SoundWavePath::mouseDrag (const juce::MouseEvent &event) {
 
 void SoundWavePath::mouseUp (const juce::MouseEvent& event) {
     isDragging_ = false;
-    playPositionMarkerPath_.setFill({playPositionMarkerColour_});
+    playPositionMarkerPath_.setFill({YellowPlayerColours::playPositionMarker});
 
     if (thumbnail_.getNumChannels() == 0)
         return;
 
-    if (soundwaveBounds_.contains(initialClickPosition_) && onSeekRequested)
-        onSeekRequested(xToTime(playPositionMarkerPath_.getCentreX()));
+    if (soundwaveBounds_.contains(initialClickPosition_) && onSeekRequested) {
+        const auto markerCentre = getLocalPoint(&playPositionMarkerPath_, juce::Point<float>(playPositionMarkerPath_.getCentreX(), 0.0f));
+        onSeekRequested(xToTime(markerCentre.getX()));
+    }
 }

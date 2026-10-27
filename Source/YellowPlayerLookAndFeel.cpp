@@ -46,10 +46,10 @@ void YellowPlayerLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y,
     if (slider.isBar() && slider.isHorizontal())
     {
         g.setColour(slider.findColour (juce::Slider::backgroundColourId));
-        g.fillRoundedRectangle(x, y, width, height, 3.0f);
+        g.fillRoundedRectangle(x, y, width, height, juce::jmin(3.0f, height / 2.0f));
         
         g.setColour (slider.findColour (juce::Slider::trackColourId));
-        g.fillRoundedRectangle(x, y, sliderPos, height, 3.0f);
+        g.fillRoundedRectangle(x, y, sliderPos, height, juce::jmin(3.0f, height / 2.0f));
     }
     else
     {

@@ -23,6 +23,12 @@ namespace YellowPlayerColours {
     const juce::Colour darkGrey { 0xff374151 };
     const juce::Colour lightGrey { 0xffd1d5db };
     const juce::Colour white { 0xfff9fafb };
+    const juce::Colour playPositionMarker { 0xffff5252 };
+}
+
+// Sizes shared by several components, in pixels
+namespace YellowPlayerStyle {
+    constexpr float triangleSize = 4.0f;    // triangles on top of the major bars and of the play position marker
 }
 
 class YellowPlayerLookAndFeel :  public juce::LookAndFeel_V4

@@ -13,11 +13,30 @@
 #include <JuceHeader.h>
 #include "YellowPlayerLookAndFeel.h"
 #include "SoundWavePath.h"
+#include "Utils.h"
 
 // //==============================================================================
 
 class SoundLevelSlider : public juce::Slider {
 public:
+    bool compact_ = false;
+
+    // Compact mode: the slider is drawn as a thin line without the percentage text
+    void setCompact(bool compact)
+    {
+        if (compact == compact_)
+            return;
+
+        compact_ = compact;
+
+        if (compact_) {
+            setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        } else {
+            setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
+            setTextBoxIsEditable(false);
+        }
+    }
+
     SoundLevelSlider() : juce::Slider(juce::Slider::SliderStyle::LinearBar
                      , juce::Slider::TextEntryBoxPosition::TextBoxBelow)
     {
@@ -50,6 +69,9 @@ public:
     void changeListenerCallback (juce::ChangeBroadcaster* source) override;
 
     void paint (juce::Graphics&) override;
+   #if YELLOWPLAYER_SHOW_BOUNDS
+    void paintOverChildren (juce::Graphics&) override;
+   #endif
     void resized() override;
     
     enum TransportState {
@@ -66,6 +88,8 @@ private:
     void changeAndHandleState(TransportState newState);
     
     void setCurrentTimeInBothWaveforms(double timeInSec);
+
+    void paintChannelLabel(juce::Graphics& g, const juce::Rectangle<float>& labelArea, const juce::String& text);
 
     void plusButtonClicked();
     void playButtonClicked();
@@ -89,11 +113,19 @@ private:
     juce::Rectangle<float> topPlayerArea_;
     juce::Rectangle<float> bottomPlayerArea_;
     
+    juce::Rectangle<float> topLabelArea_;
+    juce::Rectangle<float> bottomLabelArea_;
+
+    // Speaker icon in front of the channel labels
+    juce::Image speakerIcon_ = juce::ImageCache::getFromMemory(BinaryData::speakericon24px_png, BinaryData::speakericon24px_pngSize);
+    
     juce::Rectangle<float> timeArea_;
 
     SoundLevelSlider topSlider_;
     SoundLevelSlider bottomSlider_;
     float sliderHeight_ = 20.0f;
+
+    bool compact_ = false;  // window is Layout::compactHeightLimit or less
     std::atomic<float> topChannelVolume_ = 1.0f;
     std::atomic<float> bottomChannelVolume_ = 1.0f;
 
@@ -105,8 +137,6 @@ private:
     SoundWavePath bottomSoundWave_ = {thumbnail_, 1};
     
     int repaintWhenBackgroundCounter_ = 0;
-
-    const float controlsAreaHeight_ = 50.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (YellowPlayer)
 };
